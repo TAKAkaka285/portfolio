@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>∅ — EXPLORER</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000005;color:#ddeeff;cursor:none;}
+canvas#bg{position:fixed;inset:0;z-index:0;}
+
+/* ── CURSOR ── */
+#cur{position:fixed;z-index:9999;pointer-events:none;
+  width:6px;height:6px;background:#c0d8ff;border-radius:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 8px #c0d8ff,0 0 20px rgba(150,200,255,.5);}
+#cur-ring{position:fixed;z-index:9998;pointer-events:none;
+  width:26px;height:26px;border-radius:50%;
+  border:1px solid rgba(150,200,255,.25);
+  transform:translate(-50%,-50%);transition:width .25s,height .25s;}
+
+/* ── MINIMAP ── */
+#minimap{
+  position:fixed;bottom:28px;right:28px;z-index:80;
+  width:120px;height:120px;
+  border:1px solid rgba(150,200,255,.18);
+  background:rgba(0,4,12,.7);
+  backdrop-filter:blur(8px);
+}
+#minimap canvas{width:100%;height:100%;}
+#minimap-label{
+  position:absolute;top:-18px;left:0;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  letter-spacing:.3em;color:rgba(150,200,255,.3);text-transform:uppercase;
+}
+
+/* ── HUD ── */
+#logo{position:fixed;top:26px;left:32px;z-index:80;
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.4em;
+  text-transform:uppercase;color:rgba(150,200,255,.28);}
+#coords-hud{position:fixed;top:26px;left:32px;margin-top:22px;z-index:80;margin-top:42px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.18em;
+  color:rgba(150,200,255,.2);line-height:2;}
+#coords-hud .v{color:rgba(150,200,255,.5);}
+
+/* ── CONTROLS HINT ── */
+#controls{
+  position:fixed;bottom:28px;left:32px;z-index:80;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(150,200,255,.2);line-height:2.2;
+}
+.key{
+  display:inline-block;border:1px solid rgba(150,200,255,.25);
+  padding:1px 6px;border-radius:2px;margin:0 2px;
+  color:rgba(150,200,255,.4);font-size:8px;
+}
+
+/* ── SECTION PANELS ── */
+.panel{
+  position:fixed;z-index:60;
+  pointer-events:none;opacity:0;
+  transition:opacity .6s ease;
+  font-family:'Share Tech Mono',monospace;
+}
+.panel.show{opacity:1;pointer-events:all;}
+
+/* Panel glass card */
+.card{
+  background:rgba(0,6,18,.82);
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(150,200,255,.12);
+  padding:32px 36px;
+  max-width:480px;
+  position:relative;
+  overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(150,200,255,.04),transparent 60%);
+  pointer-events:none;
+}
+.card-label{
+  font-size:8px;letter-spacing:.45em;text-transform:uppercase;
+  color:rgba(150,200,255,.45);margin-bottom:16px;
+  display:flex;align-items:center;gap:10px;
+}
+.card-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(150,200,255,.25),transparent);}
+.card-title{
+  font-size:clamp(26px,3.5vw,48px);line-height:.92;
+  letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;
+}
+.card-body{
+  font-size:11px;line-height:1.95;color:rgba(200,220,255,.42);
+  letter-spacing:.06em;
+}
+
+/* SECTOR MARKER floating labels in space */
+.sector-label{
+  position:fixed;z-index:55;pointer-events:none;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  transition:opacity .5s ease;
+}
+.sector-label .sl-name{
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.4em;
+  text-transform:uppercase;color:rgba(150,200,255,.35);display:block;
+}
+.sector-label .sl-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(150,200,255,.4);margin:6px auto 0;
+  box-shadow:0 0 10px rgba(150,200,255,.6);
+}
+
+/* ── IDLE CLOCK ── */
+#idle-clk{
+  position:fixed;inset:0;z-index:70;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;opacity:0;transition:opacity 2s ease;
+}
+#idle-clk.show{opacity:1;}
+#clk-t{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(60px,14vw,180px);letter-spacing:.04em;
+  color:rgba(150,200,255,.055);line-height:1;text-align:center;
+  text-shadow:0 0 120px rgba(100,160,255,.07);
+}
+#clk-d{
+  font-family:'Share Tech Mono',monospace;font-size:clamp(8px,.9vw,11px);
+  letter-spacing:.5em;color:rgba(150,200,255,.1);margin-top:6px;text-transform:uppercase;
+}
+
+/* ── PROXIMITY INDICATOR ── */
+#prox{
+  position:fixed;top:50%;right:32px;transform:translateY(-50%);z-index:80;
+  display:flex;flex-direction:column;gap:14px;
+}
+.prox-item{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(150,200,255,.2);transition:color .3s;
+}
+.prox-item.near{color:rgba(150,200,255,.7);}
+.prox-item.active{color:#c0d8ff;}
+.prox-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:rgba(150,200,255,.2);transition:background .3s,transform .3s,box-shadow .3s;
+  flex-shrink:0;
+}
+.prox-item.near .prox-dot{background:rgba(150,200,255,.5);}
+.prox-item.active .prox-dot{background:#c0d8ff;transform:scale(2);box-shadow:0 0 8px #c0d8ff;}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+<canvas id="bg"></canvas>
+
+<!-- HUD -->
+<div id="logo">∅ EXPLORER</div>
+<div id="coords-hud">
+  X <span class="v" id="hx">0</span> &nbsp;
+  Y <span class="v" id="hy">0</span>
+</div>
+
+<!-- Proximity nav -->
+<div id="prox">
+  <div class="prox-item active" data-idx="0"><div class="prox-dot"></div>Hero</div>
+  <div class="prox-item" data-idx="1"><div class="prox-dot"></div>About</div>
+  <div class="prox-item" data-idx="2"><div class="prox-dot"></div>Thought</div>
+  <div class="prox-item" data-idx="3"><div class="prox-dot"></div>Works</div>
+  <div class="prox-item" data-idx="4"><div class="prox-dot"></div>Skills</div>
+  <div class="prox-item" data-idx="5"><div class="prox-dot"></div>Contact</div>
+</div>
+
+<!-- Minimap -->
+<div id="minimap">
+  <div id="minimap-label">Sector Map</div>
+  <canvas id="mm" width="120" height="120"></canvas>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move<br>
+  <span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> Look<br>
+  <span class="key">Drag</span> Orbit
+</div>
+
+<!-- PANELS — will be positioned in world space by JS -->
+<div class="panel" id="p0">
+  <div class="card">
+    <div class="card-label">00 / Hero</div>
+    <h1 class="card-title">YOUR<br>NAME</h1>
+    <p class="card-body">Creative Designer — Tokyo<br>Designer who refuses to be comfortable.<br><br>Navigate the cosmos with WASD.</p>
+  </div>
+</div>
+<div class="panel" id="p1">
+  <div class="card">
+    <div class="card-label">01 / About</div>
+    <h2 class="card-title">Who<br>I Am</h2>
+    <p class="card-body">デザインをして N 年。常に既存のフォーマットへの疑問から始める。クライアントが求めるものと、ユーザーが本当に必要なものと、世界がまだ見たことないものの三角形の中で設計する。<br><br>「整えることが目的ではない。整えた後に何が起きるかが、デザインだ。」</p>
+  </div>
+</div>
+<div class="panel" id="p2">
+  <div class="card">
+    <div class="card-label">02 / Thought</div>
+    <h2 class="card-title">Mani<br>festo</h2>
+    <p class="card-body">
+      01 — デザインは問いである。答えではない。<br>
+      02 — 美しさは機能の副産物ではなく、機能そのものだ。<br>
+      03 — ユーザーを「守る」デザインは、ユーザーを馬鹿にしている。<br>
+      04 — 余白は「何もない」ではなく「始まりの場所」だ。<br>
+      05 — 流行を追うデザインは、追いかけながら死んでいく。
+    </p>
+  </div>
+</div>
+<div class="panel" id="p3">
+  <div class="card">
+    <div class="card-label">03 / Works</div>
+    <h2 class="card-title">Selected<br>Works</h2>
+    <p class="card-body">
+      <strong style="color:#c0d8ff;letter-spacing:.08em;">PROJECT ALPHA</strong><br>
+      Branding / Identity — ブランドリアーキテクチャの実験<br><br>
+      <strong style="color:#c0d8ff;letter-spacing:.08em;">PROJECT BETA</strong><br>
+      UI / Interaction — 動きが語るインターフェース<br><br>
+      <strong style="color:#c0d8ff;letter-spacing:.08em;">PROJECT GAMMA</strong><br>
+      Type / Editorial — タイポグラフィを彫刻として扱った誌面
+    </p>
+  </div>
+</div>
+<div class="panel" id="p4">
+  <div class="card">
+    <div class="card-label">04 / Skills</div>
+    <h2 class="card-title">Tech<br>Stack</h2>
+    <p class="card-body" style="line-height:2.2;">
+      <span style="color:#c0d8ff;">Figma · Illustrator · Photoshop</span><br>
+      After Effects · Blender · Spline<br>
+      <span style="color:#c0d8ff;">HTML/CSS · JavaScript</span><br>
+      Three.js · React · GSAP<br>
+      Design Research · Brand Strategy
+    </p>
+  </div>
+</div>
+<div class="panel" id="p5">
+  <div class="card">
+    <div class="card-label">05 / Contact</div>
+    <h2 class="card-title">Let's<br>Connect</h2>
+    <p class="card-body">
+      hello@yourname.com<br>
+      Tokyo / Remote<br><br>
+      <span style="color:#c0d8ff;letter-spacing:.1em;">
+        Email &nbsp;·&nbsp; Twitter &nbsp;·&nbsp; Instagram &nbsp;·&nbsp; Behance
+      </span>
+    </p>
+  </div>
+</div>
+
+<!-- Idle clock -->
+<div id="idle-clk">
+  <div id="clk-t">00:00:00</div>
+  <div id="clk-d"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// WORLD SETUP
+// ═══════════════════════════════════════════════════════════════
+const W = window.innerWidth, H = window.innerHeight;
+const canvas = document.getElementById('bg');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000008, 0.0012);
+
+// Perspective camera — will follow the player
+const camera = new THREE.PerspectiveCamera(75, W/H, 0.1, 3000);
+camera.rotation.order = 'YXZ';
+
+scene.add(new THREE.AmbientLight(0x0a1030, 1));
+
+// ── STAR SHADER ────────────────────────────────────────────────
+const VERT = `
+  attribute float sz; attribute vec3 col;
+  varying vec3 vC; varying float vA;
+  uniform float t;
+  void main(){
+    vC=col;
+    float tw=0.78+0.22*sin(t*1.7+position.x*3.1+position.y*2.4+position.z*1.8);
+    vA=tw;
+    vec4 mv=modelViewMatrix*vec4(position,1.0);
+    float ps=max(sz*(480.0/-mv.z)*tw,1.5);
+    gl_PointSize=ps;
+    gl_Position=projectionMatrix*mv;
+  }
+`;
+const FRAG = `
+  varying vec3 vC; varying float vA;
+  void main(){
+    vec2 uv=gl_PointCoord-.5; float d=length(uv);
+    if(d>.5)discard;
+    float core=smoothstep(.1,.0,d);
+    float mid=smoothstep(.3,.0,d);
+    float soft=smoothstep(.5,.0,d);
+    float a=(soft*.6+mid*.25+core*.15)*vA;
+    vec3 c=mix(vC,vec3(1,1,1),core*.9);
+    c+=soft*vC*.35;
+    gl_FragColor=vec4(c,max(a,soft*.5*vA));
+  }
+`;
+
+function makeSphereStars(n, radius, szMin, szMax, palette) {
+  const pos=new Float32Array(n*3), col=new Float32Array(n*3), sz=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const u=Math.random(), v=Math.random();
+    const th=2*Math.PI*u, ph=Math.acos(2*v-1);
+    const r=radius*(.55+.45*Math.random());
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+    pos[i*3+2]=r*Math.cos(ph);
+    const c=palette[Math.floor(Math.random()*palette.length)];
+    const b=.68+Math.random()*.32;
+    col[i*3]=c[0]*b; col[i*3+1]=c[1]*b; col[i*3+2]=c[2]*b;
+    sz[i]=szMin+Math.random()*(szMax-szMin);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('col',new THREE.BufferAttribute(col,3));
+  geo.setAttribute('sz',new THREE.BufferAttribute(sz,1));
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{t:{value:0}},
+    vertexShader:VERT,fragmentShader:FRAG,
+    transparent:true,depthWrite:false,
+    blending:THREE.AdditiveBlending,vertexColors:false,
+  });
+  const pts=new THREE.Points(geo,mat);
+  // attach to camera so always surrounds player
+  camera.add(pts);
+  return mat;
+}
+
+scene.add(camera);
+
+const sMat1=makeSphereStars(20000,1600,1.0,3.2,[[1,1,1],[.9,.95,1],[.95,.98,1],[1,.97,.93],[.88,.93,1]]);
+const sMat2=makeSphereStars(7000, 700, 1.8,5.0,[[1,1,1],[.78,.9,1],[1,.9,.72],[.6,.82,1],[1,.96,.82]]);
+const sMat3=makeSphereStars(2500, 250, 3.0,8.5,[[1,1,1],[1,.8,.5],[.5,.85,1],[.95,.55,1],[1,1,.92]]);
+const starMats=[sMat1,sMat2,sMat3];
+
+// ── NEBULAE scattered in world space ───────────────────────────
+function makeNebula(wx, wy, wz, hue, spread, count) {
+  const geo=new THREE.BufferGeometry();
+  const p=new Float32Array(count*3), c=new Float32Array(count*3), s=new Float32Array(count);
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2, r=Math.pow(Math.random(),.45)*spread;
+    p[i*3]  =wx+Math.cos(a)*r+(Math.random()-.5)*20;
+    p[i*3+1]=wy+Math.sin(a)*r*.45+(Math.random()-.5)*25;
+    p[i*3+2]=wz+(Math.random()-.5)*spread*.5;
+    const b=.04+Math.random()*.09;
+    c[i*3]=hue[0]*b; c[i*3+1]=hue[1]*b; c[i*3+2]=hue[2]*b;
+    s[i]=6+Math.random()*18;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(p,3));
+  geo.setAttribute('col',     new THREE.BufferAttribute(c,3));
+  geo.setAttribute('sz',      new THREE.BufferAttribute(s,1));
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{t:{value:0}},
+    vertexShader:`attribute float sz;attribute vec3 col;varying vec3 vC;
+    void main(){vC=col;vec4 mv=modelViewMatrix*vec4(position,1.0);
+    gl_PointSize=sz*(460.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+    fragmentShader:`varying vec3 vC;void main(){vec2 uv=gl_PointCoord-.5;float d=length(uv);
+    if(d>.5)discard;gl_FragColor=vec4(vC,smoothstep(.5,.0,d)*.58);}`,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:false,
+  });
+  scene.add(new THREE.Points(geo,mat));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORLD LAYOUT — sections as locations in 2D world (XZ plane)
+// ═══════════════════════════════════════════════════════════════
+const SECTIONS = [
+  { id:'p0', wx:   0, wz:   0, label:'HERO',     color:[0.3,0.5,1.0] },
+  { id:'p1', wx: 220, wz: -80, label:'ABOUT',    color:[0.5,0.3,1.0] },
+  { id:'p2', wx: -60, wz:-260, label:'THOUGHT',  color:[0.2,0.75,1.0] },
+  { id:'p3', wx: 300, wz:-380, label:'WORKS',    color:[1.0,0.5,0.3] },
+  { id:'p4', wx:-200, wz:-500, label:'SKILLS',   color:[0.3,1.0,0.6] },
+  { id:'p5', wx: 100, wz:-650, label:'CONTACT',  color:[1.0,0.8,0.3] },
+];
+
+// Place nebulae at each section
+SECTIONS.forEach(s=>{
+  makeNebula(s.wx, 0, s.wz, s.color, 120, 1400);
+});
+// Extra ambient nebulae
+makeNebula(150,-10,-180,[0.4,0.6,1.0],80,900);
+makeNebula(-150,-10,-420,[0.8,0.3,0.9],100,1000);
+
+// ── SECTION BEACONS (glowing orbs at each location) ──────────
+const beacons = [];
+SECTIONS.forEach((s,i)=>{
+  const geo=new THREE.SphereGeometry(3,16,16);
+  const mat=new THREE.MeshStandardMaterial({
+    color:new THREE.Color(...s.color).multiplyScalar(0.8),
+    emissive:new THREE.Color(...s.color),
+    emissiveIntensity:1.8,
+    transparent:true,opacity:.85,
+  });
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(s.wx,0,s.wz);
+  scene.add(mesh);
+
+  // Beacon glow halo
+  const hMat=new THREE.ShaderMaterial({
+    uniforms:{col:{value:new THREE.Vector3(...s.color)},t:{value:0}},
+    vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying vec3 vN;uniform vec3 col;uniform float t;void main(){
+      float rim=1.-abs(dot(vN,vec3(0,0,1)));rim=pow(rim,2.);
+      float p=.6+.4*sin(t*.9);
+      gl_FragColor=vec4(col*p,rim*.5*p);}`,
+    transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+  });
+  const halo=new THREE.Mesh(new THREE.SphereGeometry(14,24,24),hMat);
+  halo.position.copy(mesh.position);
+  scene.add(halo);
+
+  // Vertical beam of light
+  const bGeo=new THREE.CylinderGeometry(.5,.5,400,8,1,true);
+  const bMat=new THREE.ShaderMaterial({
+    uniforms:{col:{value:new THREE.Vector3(...s.color)}},
+    vertexShader:`varying float vY;void main(){vY=position.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying float vY;uniform vec3 col;void main(){
+      float a=.04*(1.-abs(vY/200.));gl_FragColor=vec4(col,a);}`,
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+  });
+  const beam=new THREE.Mesh(bGeo,bMat);
+  beam.position.set(s.wx,0,s.wz);
+  scene.add(beam);
+
+  // Point light
+  const pl=new THREE.PointLight(new THREE.Color(...s.color),2,80);
+  pl.position.set(s.wx,0,s.wz);
+  scene.add(pl);
+
+  beacons.push({mesh,hMat,mat,pl,sec:s,i});
+});
+
+// ── STAR CUBE at the end of the journey ───────────────────────
+const STAR_POS = new THREE.Vector3(0, 0, -800);
+const sg=new THREE.Group(); sg.position.copy(STAR_POS); scene.add(sg);
+const cube=new THREE.Mesh(
+  new THREE.BoxGeometry(12,12,12),
+  new THREE.MeshStandardMaterial({color:0xffeedd,emissive:0xffaa44,emissiveIntensity:1.6,roughness:.2,metalness:.8})
+);
+sg.add(cube);
+sg.add(new THREE.Mesh(new THREE.BoxGeometry(12.3,12.3,12.3),
+  new THREE.MeshBasicMaterial({color:0xffe090,wireframe:true,transparent:true,opacity:.1})));
+const cubeHaloMat=new THREE.ShaderMaterial({
+  uniforms:{t:{value:0}},
+  vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`varying vec3 vN;uniform float t;void main(){float rim=1.-abs(dot(vN,vec3(0,0,1)));rim=pow(rim,2.);float p=.65+.35*sin(t*.6);vec3 c=mix(vec3(1.,.6,.15),vec3(1.,.9,.5),rim)*p;gl_FragColor=vec4(c,rim*.45*p);}`,
+  transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+});
+sg.add(new THREE.Mesh(new THREE.SphereGeometry(30,32,32),cubeHaloMat));
+const starLight=new THREE.PointLight(0xffcc66,8,200); sg.add(starLight);
+makeNebula(0,0,-800,[1.0,0.82,0.35],160,2000);
+
+// ═══════════════════════════════════════════════════════════════
+// PLAYER / SPACESHIP CHARACTER (CSS pixel sprite)
+// ═══════════════════════════════════════════════════════════════
+// We draw the player as a pixel-art astronaut on the minimap
+// and as a small 3D sprite in the scene
+
+// 2D top-down character sprite (SVG astronaut)
+const playerCanvas = document.createElement('canvas');
+playerCanvas.width=16;playerCanvas.height=16;
+const pc=playerCanvas.getContext('2d');
+// Draw simple pixel astronaut helmet + body
+function drawAstronaut(facing){ // facing: angle in radians
+  pc.clearRect(0,0,16,16);
+  // helmet
+  pc.fillStyle='rgba(160,210,255,0.9)';
+  pc.beginPath(); pc.arc(8,5,4,0,Math.PI*2); pc.fill();
+  // visor
+  pc.fillStyle='rgba(0,20,60,0.8)';
+  pc.beginPath(); pc.arc(8,5,2.5,0,Math.PI*2); pc.fill();
+  // visor shine
+  pc.fillStyle='rgba(255,255,255,0.4)';
+  pc.beginPath(); pc.arc(7,4,1,0,Math.PI*2); pc.fill();
+  // body
+  pc.fillStyle='rgba(180,210,240,0.85)';
+  pc.fillRect(5,9,6,4);
+  // thruster glow (direction indicator)
+  pc.fillStyle='rgba(80,160,255,0.7)';
+  const tx=8-Math.cos(facing)*5, ty=5-Math.sin(facing)*5;
+  pc.beginPath(); pc.arc(tx,ty,1.5,0,Math.PI*2); pc.fill();
+}
+drawAstronaut(0);
+
+// 3D player object (invisible, just for positioning)
+const playerObj = new THREE.Object3D();
+playerObj.position.set(0, 0, 60); // start a bit back from hero
+scene.add(playerObj);
+
+// ═══════════════════════════════════════════════════════════════
+// PLAYER MOVEMENT
+// ═══════════════════════════════════════════════════════════════
+const keys={};
+window.addEventListener('keydown',e=>{keys[e.code]=true;});
+window.addEventListener('keyup',  e=>{keys[e.code]=false;});
+
+let playerAngle = Math.PI; // facing direction (yaw)
+let camPitch = -0.15;      // camera pitch
+let playerSpeed = 0;
+const SPEED_MAX = 1.8;
+const ACCEL = 0.08;
+const DECEL = 0.92;
+const TURN_SPEED = 0.032;
+
+// Camera follows player from behind and above
+const CAM_DIST = 22;
+const CAM_HEIGHT = 8;
+
+// Drag to look
+let isDrag=false, dSX=0, dSY=0, dragAngleBase=0, dragPitchBase=0;
+canvas.addEventListener('mousedown',e=>{isDrag=true;dSX=e.clientX;dSY=e.clientY;dragAngleBase=playerAngle;dragPitchBase=camPitch;});
+window.addEventListener('mouseup',()=>{isDrag=false;});
+let mX=W/2,mY=H/2;
+window.addEventListener('mousemove',e=>{
+  mX=e.clientX;mY=e.clientY;
+  if(isDrag){
+    playerAngle=dragAngleBase-(e.clientX-dSX)*0.006;
+    camPitch=Math.max(-.6,Math.min(.3,dragPitchBase+(e.clientY-dSY)*0.004));
+  }
+});
+
+// Touch drag
+let tdOn=false,tdSX=0,tdSY=0,tdBA=0,tdBP=0;
+canvas.addEventListener('touchstart',e=>{tdOn=true;tdSX=e.touches[0].clientX;tdSY=e.touches[0].clientY;tdBA=playerAngle;tdBP=camPitch;},{passive:true});
+canvas.addEventListener('touchend',()=>{tdOn=false;},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  if(!tdOn)return;
+  playerAngle=tdBA-(e.touches[0].clientX-tdSX)*.007;
+  camPitch=Math.max(-.6,Math.min(.3,tdBP+(e.touches[0].clientY-tdSY)*.005));
+},{passive:true});
+
+// ═══════════════════════════════════════════════════════════════
+// MINIMAP
+// ═══════════════════════════════════════════════════════════════
+const mm=document.getElementById('mm');
+const mmc=mm.getContext('2d');
+const MM=120;
+const WORLD_SCALE=0.08; // world units → minimap px
+
+function drawMinimap(){
+  mmc.clearRect(0,0,MM,MM);
+  // Background
+  mmc.fillStyle='rgba(0,6,20,.85)';
+  mmc.fillRect(0,0,MM,MM);
+
+  const px=playerObj.position.x, pz=playerObj.position.z;
+  const cx=MM/2 - px*WORLD_SCALE;
+  const cy=MM/2 - pz*WORLD_SCALE;
+
+  // Section beacons on minimap
+  SECTIONS.forEach((s,i)=>{
+    const mx2=cx+s.wx*WORLD_SCALE, my2=cy+s.wz*WORLD_SCALE;
+    if(mx2<-10||mx2>MM+10||my2<-10||my2>MM+10)return;
+    const d=Math.hypot(playerObj.position.x-s.wx, playerObj.position.z-s.wz);
+    const alpha=d<60?1:0.45;
+    const c=s.color;
+    mmc.beginPath();
+    mmc.arc(mx2,my2,3.5,0,Math.PI*2);
+    mmc.fillStyle=`rgba(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)},${alpha})`;
+    mmc.fill();
+    // label
+    mmc.font='5px monospace';
+    mmc.fillStyle=`rgba(180,210,255,${alpha*.7})`;
+    mmc.fillText(s.label,mx2+5,my2+2);
+  });
+
+  // Star at end
+  const sx=cx+0*WORLD_SCALE, sy=cy+(-800)*WORLD_SCALE;
+  if(sx>-10&&sx<MM+10&&sy>-10&&sy<MM+10){
+    mmc.beginPath(); mmc.arc(sx,sy,4,0,Math.PI*2);
+    mmc.fillStyle='rgba(255,200,100,0.7)'; mmc.fill();
+    mmc.font='5px monospace'; mmc.fillStyle='rgba(255,200,100,0.5)';
+    mmc.fillText('★',sx+5,sy+2);
+  }
+
+  // Player dot
+  mmc.save();
+  mmc.translate(MM/2,MM/2);
+  mmc.rotate(-playerAngle+Math.PI);
+  // Arrow shape
+  mmc.beginPath();
+  mmc.moveTo(0,-6);
+  mmc.lineTo(3.5,4);
+  mmc.lineTo(0,2);
+  mmc.lineTo(-3.5,4);
+  mmc.closePath();
+  mmc.fillStyle='rgba(180,220,255,0.95)';
+  mmc.fill();
+  mmc.restore();
+
+  // Minimap border
+  mmc.strokeStyle='rgba(150,200,255,.15)';
+  mmc.lineWidth=1;
+  mmc.strokeRect(0,0,MM,MM);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANELS — position relative to viewport based on proximity
+// ═══════════════════════════════════════════════════════════════
+const panelEls = SECTIONS.map(s=>document.getElementById(s.id));
+const proxItems = document.querySelectorAll('.prox-item');
+const SHOW_DIST = 90;
+
+function updatePanels(){
+  SECTIONS.forEach((s,i)=>{
+    const dist=Math.hypot(
+      playerObj.position.x-s.wx,
+      playerObj.position.z-s.wz
+    );
+    const alpha=Math.max(0,1-dist/SHOW_DIST);
+    panelEls[i].style.opacity=alpha;
+    panelEls[i].classList.toggle('show',alpha>0.02);
+
+    // Position panel on screen — project world pos through camera
+    const worldPos=new THREE.Vector3(s.wx,0,s.wz);
+    const projected=worldPos.clone().project(camera);
+    const sx=( projected.x*.5+.5)*window.innerWidth;
+    const sy=(-projected.y*.5+.5)*window.innerHeight;
+    // Only show if in front of camera (projected.z < 1)
+    if(projected.z<1){
+      panelEls[i].style.left=(sx+40)+'px';
+      panelEls[i].style.top= Math.max(20,sy-120)+'px';
+    }
+
+    // Proximity items
+    proxItems[i].classList.toggle('active',dist<30);
+    proxItems[i].classList.toggle('near',dist<SHOW_DIST&&dist>=30);
+    proxItems[i].classList.remove('near');
+    if(dist<SHOW_DIST&&dist>=30) proxItems[i].classList.add('near');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// IDLE CLOCK
+// ═══════════════════════════════════════════════════════════════
+const idleClk=document.getElementById('idle-clk');
+const clkT=document.getElementById('clk-t'), clkD=document.getElementById('clk-d');
+const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+let idleTimer,isIdle=false;
+function tickClock(){
+  const n=new Date();
+  clkT.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+  clkD.textContent=`${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')} ${DAYS[n.getDay()]}`;
+}
+setInterval(tickClock,1000); tickClock();
+function resetIdle(){
+  clearTimeout(idleTimer);
+  if(isIdle){isIdle=false;idleClk.classList.remove('show');}
+  idleTimer=setTimeout(()=>{isIdle=true;idleClk.classList.add('show');},5000);
+}
+['mousemove','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,resetIdle,{passive:true}));
+resetIdle();
+
+// ── CURSOR ────────────────────────────────────────────────────
+const curEl=document.getElementById('cur'), ringEl=document.getElementById('cur-ring');
+let cX=W/2,cY=H/2;
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+const clock3=new THREE.Clock();
+let elapsed=0;
+
+(function loop(){
+  requestAnimationFrame(loop);
+  const dt=clock3.getDelta();
+  elapsed+=dt;
+
+  // ── PLAYER MOVEMENT ────────────────────────────────────────
+  const left  = keys['KeyA']||keys['ArrowLeft'];
+  const right = keys['KeyD']||keys['ArrowRight'];
+  const fwd   = keys['KeyW']||keys['ArrowUp'];
+  const back  = keys['KeyS']||keys['ArrowDown'];
+
+  if(left)  playerAngle+=TURN_SPEED;
+  if(right) playerAngle-=TURN_SPEED;
+
+  if(fwd){
+    playerSpeed=Math.min(SPEED_MAX,playerSpeed+ACCEL);
+  } else if(back){
+    playerSpeed=Math.max(-SPEED_MAX*.5,playerSpeed-ACCEL);
+  } else {
+    playerSpeed*=DECEL;
+    if(Math.abs(playerSpeed)<0.01)playerSpeed=0;
+  }
+
+  // Move player in facing direction
+  playerObj.position.x+=Math.sin(playerAngle)*playerSpeed;
+  playerObj.position.z+=Math.cos(playerAngle)*playerSpeed;
+  playerObj.position.y=Math.sin(elapsed*.4)*1.5; // gentle float
+
+  // ── CAMERA FOLLOW ─────────────────────────────────────────
+  // Position camera behind and above player
+  const camTargetX=playerObj.position.x-Math.sin(playerAngle)*CAM_DIST;
+  const camTargetZ=playerObj.position.z-Math.cos(playerAngle)*CAM_DIST;
+  const camTargetY=playerObj.position.y+CAM_HEIGHT;
+
+  // Smooth camera
+  camera.position.x+=(camTargetX-camera.position.x)*0.08;
+  camera.position.y+=(camTargetY-camera.position.y)*0.08;
+  camera.position.z+=(camTargetZ-camera.position.z)*0.08;
+
+  // Camera looks toward player
+  const lookTarget=new THREE.Vector3(
+    playerObj.position.x,
+    playerObj.position.y,
+    playerObj.position.z
+  );
+  camera.rotation.y=playerAngle;
+  camera.rotation.x=camPitch;
+
+  // ── UPDATE SHADERS ────────────────────────────────────────
+  starMats.forEach(m=>m.uniforms.t.value=elapsed);
+  cubeHaloMat.uniforms.t.value=elapsed;
+
+  // Beacon pulse
+  beacons.forEach(b=>{
+    b.mesh.position.y=Math.sin(elapsed*.8+b.i)*2;
+    b.hMat.uniforms.t.value=elapsed;
+    b.mat.emissiveIntensity=1.5+.5*Math.sin(elapsed*.9+b.i);
+    b.pl.intensity=2+Math.sin(elapsed*.7+b.i)*.8;
+  });
+
+  // Cube rotation
+  cube.rotation.x=elapsed*.15;
+  cube.rotation.y=elapsed*.22;
+  starLight.intensity=7+Math.sin(elapsed*1.1)*2;
+
+  // ── UI UPDATE ─────────────────────────────────────────────
+  document.getElementById('hx').textContent=Math.round(playerObj.position.x);
+  document.getElementById('hy').textContent=Math.round(playerObj.position.z);
+
+  updatePanels();
+  drawMinimap();
+
+  // Cursor
+  cX+=(mX-cX)*.1; cY+=(mY-cY)*.1;
+  curEl.style.left=cX+'px'; curEl.style.top=cY+'px';
+  ringEl.style.left=cX+'px'; ringEl.style.top=cY+'px';
+
+  renderer.render(scene,camera);
+})();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
