@@ -10,7 +10,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html,body{
   width:100%;height:100%;overflow:hidden;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'IBM Plex Mono',Helvetica,Arial,sans-serif;
   background:#cdd2dc;
   -webkit-font-smoothing:antialiased;
   user-select:none;
@@ -19,7 +19,7 @@ html,body{
 /* ── BOARD ── */
 #board{
   position:fixed;inset:0;overflow:hidden;
-  background-color:#cdd2dc;
+  background-color:#ABFF23;
   /* dot grid at intersections */
   background-image: radial-gradient(circle, rgba(0,0,0,0.22) 1.2px, transparent 1.2px);
   background-size:40px 40px;
@@ -69,7 +69,7 @@ html,body{
 /* Paper body */
 .note-paper{
   width:100%;min-height:100%;
-  padding:20px 20px 32px;
+  padding:20px 20px 64px;
   position:relative;
   overflow:visible;
 }
@@ -145,7 +145,7 @@ html,body{
 
 /* ── NOTE TEXT ── */
 .note-label{
-  font-family:'Share Tech Mono',monospace;
+  font-family:'EB Garamond',semiBold;
   font-size:8px;letter-spacing:.35em;text-transform:uppercase;
   color:rgba(0,0,0,.38);margin-bottom:10px;display:block;
 }
@@ -323,7 +323,7 @@ body{cursor:none!important;}
 #cur{
   position:fixed;z-index:9999;pointer-events:none;
   width:10px;height:10px;border-radius:50%;
-  background:#e8001d;
+  background:#ABFF23;
   transform:translate(-50%,-50%);
   transition:width .1s,height .1s,border-radius .1s;
 }
@@ -338,19 +338,19 @@ body{cursor:none!important;}
 }
 #idle-clk.show{opacity:1;}
 #clk-t{
-  font-family:'Share Tech Mono',monospace;
+  font-family:''Special Elite',regular;
   font-size:min(22vw,26vh);
   font-weight:400;letter-spacing:.04em;
   color:rgb(0,0,250);
   line-height:1;text-align:center;
   font-variant-numeric:tabular-nums;
   /* stretch vertically */
-  transform:scaleY(1.5);
+  transform:scaleY(4);
   transform-origin:center center;
   display:block;
 }
 #clk-d{
-  font-family:'Share Tech Mono',monospace;
+  font-family:'Special Elite',regular;
   font-size:clamp(10px,1.2vw,16px);
   letter-spacing:.5em;
   color:rgba(0,0,250,.7);
@@ -393,7 +393,7 @@ body{cursor:none!important;}
   width:100%;
   border:none;border-bottom:1.5px solid #ccc;
   color:#111;padding:8px 2px;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Handjet',Helvetica,Arial,sans-serif;
   font-size:14px;outline:none;
   transition:border-color .15s;background:transparent;resize:none;
 }
@@ -513,22 +513,22 @@ body{cursor:none!important;}
 const NOTES = [
   {
     id:'hero', color:'c-white', label:'00 / Hero',
-    title:'YOUR NAME',
-    body:'Creative Designer — Tokyo\nDesigner who refuses to be comfortable.',
+    title:'SAI10',
+    body:'2001ねんうまれ、男\n「第１４２回 高尚でお高くとまってるやつに向けて一言大会」５位入賞\n「第３１回 小学生のときに年金暮らしを目指していた大会」準優勝\n最近は「ひらやすみ」の主人公ヒロトになりたいと心から願っている',
     x:320, y:240, rot:-1.8, z:10, conns:['about','thought'],
     deco:{type:'tape', variant:'tape-h tape-kraft tape-pos-tc'}
   },
   {
     id:'about', color:'c-beige', label:'01 / About',
-    title:'Who I Am',
-    body:'デザインをして N 年。常に既存のフォーマットへの疑問から始める。\n\n「整えることが目的ではない。整えた後に何が起きるかが、デザインだ。」',
+    title:'What I Can?',
+    body:'3DCGを用いたアニメーション作成\nThree.jsを組み合わせたインタラクティブなWebサイト\nアプリ開発における世界観のデザイン',
     x:640, y:160, rot:1.5, z:11, conns:['works'],
     deco:{type:'pin', variant:'pin-red'}
   },
   {
     id:'thought', color:'c-yellow', label:'02 / Thought',
-    title:'Manifesto',
-    body:'01 — デザインは問いである\n02 — 美しさは機能そのもの\n03 — 余白は始まりの場所\n04 — 流行を追うデザインは死んでいく',
+    title:'Poetory',
+    body:'01 — デザインはよくわからない。\n02 — 美しさは再生成し続けること。（ドゥルーズになりたい）\n03 — 余白は余白じゃない。（コーヒー牛乳を飲みながら）\n04 — 流行を追うデザインは死んでいく🦋',
     x:340, y:520, rot:0.9, z:12, conns:['skills'],
     deco:{type:'tape', variant:'tape-h tape-pos-tl'}
   },
@@ -542,28 +542,28 @@ const NOTES = [
   {
     id:'skills', color:'c-pink', label:'04 / Skills',
     title:'Tech Stack',
-    body:'Figma · Illustrator · Photoshop\nAfter Effects · Blender\n\nHTML / CSS / JavaScript\nThree.js · React · GSAP',
+    body:'Create Concept this World🌎',
     x:640, y:590, rot:2.1, z:14, conns:['contact'],
     deco:{type:'tape', variant:'tape-h tape-pos-tr'}
   },
   {
     id:'contact', color:'c-blue', label:'05 / Contact',
     title:"Let's\nTalk",
-    body:'hello@yourname.com\nTokyo / Remote\n\nTwitter · Instagram · Behance',
+    body:'takaya112520@gmail.com',
     x:1020, y:560, rot:-0.7, z:15, conns:[],
     deco:{type:'pin', variant:'pin-silver'}
   },
   {
     id:'red1', color:'c-red', label:'Now',
     title:'Available\nfor Work',
-    body:'新しいプロジェクトを\n随時受け付けています',
+    body:'新しいプロジェクトを\n随時受け付けています(´・ω・`)',
     x:220, y:430, rot:3.5, z:9, conns:[],
     deco:{type:'tape', variant:'tape-h tape-white tape-pos-tc'}
   },
   {
     id:'navy1', color:'c-navy', label:'Note',
     title:'✦',
-    body:'宇宙の果てまで\nデザインしていく',
+    body:'宇宙の果てまで\nデザインしていく☄',
     x:950, y:180, rot:-2.8, z:8, conns:[],
     deco:{type:'pin', variant:'pin-gold'}
   },
@@ -920,7 +920,7 @@ board.addEventListener('mouseover', e => {
 // IDLE CLOCK
 // ═══════════════════════════════════════════════
 const idleClk=document.getElementById('idle-clk'), clkT=document.getElementById('clk-t'), clkD=document.getElementById('clk-d');
-const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const DAYS=['SNdy','MNdy','TUEdy','WEDdy','THUdy','FRdy','STdy'];
 let idleTimer, isIdle=false;
 function tick(){
   const n=new Date();
