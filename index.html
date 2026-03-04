@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>∅ — Board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Handjet:wght@100..900&family=IBM+Plex+Mono:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html,body{
   width:100%;height:100%;overflow:hidden;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
-  background:#777;
+  background:#cdd2dc;
   -webkit-font-smoothing:antialiased;
   user-select:none;
 }
@@ -20,8 +19,9 @@ html,body{
 /* ── BOARD ── */
 #board{
   position:fixed;inset:0;overflow:hidden;
-  background-color:#777777;
-  background-image:radial-gradient(circle,#ABFF23 1.4px,transparent 1.4px);
+  background-color:#cdd2dc;
+  /* dot grid at intersections */
+  background-image: radial-gradient(circle, rgba(0,0,0,0.22) 1.2px, transparent 1.2px);
   background-size:40px 40px;
 }
 #world{
@@ -30,40 +30,43 @@ html,body{
   top:0;left:0;
   transform-origin:0 0;
 }
+
+/* ── DRAW CANVAS — same size as world ── */
+#draw-canvas{
+  position:absolute;top:0;left:0;
+  width:8000px;height:8000px;
+  pointer-events:none;
+  z-index:2;
+  touch-action:none;
+}
+#draw-canvas.active{pointer-events:all;}
+
+/* ── SVG ── */
 #connections{
   position:absolute;top:0;left:0;
   width:8000px;height:8000px;
   pointer-events:none;z-index:0;
 }
 
-/* ── DRAW CANVAS — FIXED, covers full viewport ── */
-#draw-canvas{
-  position:fixed;inset:0;
-  width:100vw;height:100vh;
-  pointer-events:none;
-  z-index:50;
-  touch-action:none;
-  cursor:crosshair;
-}
-#draw-canvas.active{pointer-events:all;}
-
-/* ══ NOTES ══════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   NOTES — paper aesthetic
+══════════════════════════════════════════ */
 .note{
   position:absolute;
   cursor:grab;
   transform-origin:center;
   will-change:transform;
-  filter:drop-shadow(2px 5px 10px rgba(0,0,0,.32));
+  filter:drop-shadow(2px 4px 8px rgba(0,0,0,.18));
   transition:filter .18s;
-  z-index:10;
 }
 .note:active{cursor:grabbing;}
 .note.dragging{
-  filter:drop-shadow(6px 14px 28px rgba(0,0,0,.42))!important;
+  filter:drop-shadow(6px 12px 24px rgba(0,0,0,.28))!important;
   z-index:1000!important;
 }
 .note.expanded{z-index:500!important;}
 
+/* Paper body */
 .note-paper{
   width:100%;min-height:100%;
   padding:20px 20px 32px;
@@ -71,87 +74,84 @@ html,body{
   overflow:visible;
 }
 
-/* corner sketch marks */
+/* Corner sketch marks (hand-drawn feel) */
 .note-paper::before,.note-paper::after{
   content:'';position:absolute;
   width:10px;height:10px;
-  border-color:rgba(0,0,0,.2);border-style:solid;
+  border-color:rgba(0,0,0,.25);border-style:solid;
   pointer-events:none;
 }
-.note-paper::before{top:5px;left:5px;border-width:1.5px 0 0 1.5px;}
-.note-paper::after{bottom:5px;right:5px;border-width:0 1.5px 1.5px 0;}
+.note-paper::before{top:6px;left:6px;border-width:1.5px 0 0 1.5px;}
+.note-paper::after{ bottom:6px;right:6px;border-width:0 1.5px 1.5px 0;}
 
-/* colours */
-.note.c-white  .note-paper{background:#fff;}
-.note.c-ruled  .note-paper{
-  background:#fff;
-  background-image:repeating-linear-gradient(transparent,transparent 23px,rgba(100,140,220,.16) 24px);
-  background-size:100% 24px;background-position:0 28px;
-}
-.note.c-yellow .note-paper{background:#f5f0be;}
-.note.c-pink   .note-paper{background:#f5c8ce;}
+/* Color variants */
+.note.c-white  .note-paper{background:#fff;border:none;}
+.note.c-yellow .note-paper{background:#f5f0c0;}
+.note.c-pink   .note-paper{background:#f5c8cf;}
 .note.c-blue   .note-paper{background:#c4d8f0;}
 .note.c-green  .note-paper{background:#c8e8d0;}
 .note.c-beige  .note-paper{background:#e8e4cc;}
-.note.c-red    .note-paper{background:#d00018;color:#fff;}
+.note.c-red    .note-paper{background:#e8001d;color:#fff;}
 .note.c-navy   .note-paper{background:#1a2550;color:#fff;}
 
-/* ── TAPE decorations ── */
-.deco-tape{
-  position:absolute;z-index:20;pointer-events:none;
-  border-radius:2px;
+/* Lines on white notes */
+.note.c-white .note-paper{
+  background-image:repeating-linear-gradient(transparent,transparent 23px,rgba(100,140,200,.18) 24px);
+  background-size:100% 24px;background-position:0 28px;
 }
-.tape-blue  {background:rgba(80,160,230,.78);width:54px;height:16px;}
-.tape-kraft {background:rgba(180,148,90,.75);width:50px;height:15px;}
-.tape-white {background:rgba(230,230,220,.88);width:54px;height:16px;}
-.tape-short {width:36px;}
-/* positions */
-.tp-tc{top:-8px;left:50%;transform:translateX(-50%) rotate(-2deg);}
-.tp-tl{top:-8px;left:12px;transform:rotate(-7deg);}
-.tp-tr{top:-8px;right:12px;transform:rotate(6deg);}
-.tp-bl{bottom:-8px;left:18px;transform:rotate(4deg);}
-.tp-br{bottom:-8px;right:14px;transform:rotate(-5deg);}
-/* double tape (two pieces) */
-.tp-tl2{top:-8px;left:8px;transform:rotate(-9deg);}
-.tp-tr2{top:-8px;right:8px;transform:rotate(8deg);}
+
+/* ── TAPE ── */
+.tape{
+  position:absolute;
+  border-radius:2px;
+  opacity:.82;
+  z-index:10;
+  pointer-events:none;
+}
+.tape-h{ width:52px;height:16px;background:rgba(100,170,230,.75); }
+.tape-v{ width:16px;height:48px;background:rgba(100,170,230,.75); }
+.tape-kraft{ background:rgba(185,155,100,.72); }
+.tape-white{ background:rgba(240,240,240,.85); }
+.tape-pos-tc{ top:-8px;left:50%;transform:translateX(-50%) rotate(-2deg); }
+.tape-pos-tl{ top:-7px;left:14px;transform:rotate(-8deg); }
+.tape-pos-tr{ top:-7px;right:14px;transform:rotate(6deg); }
+.tape-pos-bl{ bottom:-7px;left:20px;transform:rotate(4deg); }
+.tape-pos-br{ bottom:-7px;right:16px;transform:rotate(-5deg); }
+.tape-pos-lt{ left:-8px;top:20px;transform:rotate(-4deg); }
+.tape-pos-rt{ right:-8px;top:16px;transform:rotate(3deg); }
 
 /* ── PIN ── */
-.deco-pin{
-  position:absolute;z-index:20;pointer-events:none;
+.pin{
+  position:absolute;
   width:14px;height:14px;border-radius:50%;
-  box-shadow:0 2px 5px rgba(0,0,0,.38);
+  z-index:10;pointer-events:none;
+  top:-7px;left:50%;transform:translateX(-50%);
 }
-.pin-red   {background:radial-gradient(circle at 38% 35%,#ff9090,#cc0000);}
-.pin-silver{background:radial-gradient(circle at 38% 35%,#eee,#888);}
-.pin-gold  {background:radial-gradient(circle at 38% 35%,#ffe07a,#b87800);}
-.pp-tc {top:-7px;left:50%;transform:translateX(-50%);}
-.pp-tl {top:-7px;left:20px;}
-.pp-tr {top:-7px;right:20px;}
-.pp-tl2{top:-7px;left:20px;}
-.pp-tr2{top:-7px;right:20px;}
+.pin-red{background:radial-gradient(circle at 38% 35%,#ff8080,#cc0000);box-shadow:0 2px 5px rgba(0,0,0,.35);}
+.pin-silver{background:radial-gradient(circle at 38% 35%,#eee,#999);box-shadow:0 2px 5px rgba(0,0,0,.35);}
+.pin-gold{background:radial-gradient(circle at 38% 35%,#ffe08a,#c8960a);box-shadow:0 2px 5px rgba(0,0,0,.35);}
 
 /* ── CLIP ── */
-.deco-clip{
-  position:absolute;z-index:20;pointer-events:none;
-  top:-6px;left:16px;
-  width:34px;height:13px;
-  background:linear-gradient(180deg,#ddd 0%,#aaa 50%,#ddd 100%);
-  border:1.5px solid rgba(160,160,175,.9);border-radius:3px;
+.clip{
+  position:absolute;top:-6px;left:18px;
+  width:32px;height:12px;z-index:10;pointer-events:none;
+  border:2px solid rgba(180,180,190,.9);border-radius:3px;
+  background:linear-gradient(180deg,#dde 0%,#aab 50%,#dde 100%);
 }
-.deco-clip::after{
-  content:'';position:absolute;top:3px;left:5px;right:5px;height:2px;
-  border:1.5px solid rgba(140,140,158,.7);border-radius:2px;
+.clip::after{
+  content:'';position:absolute;top:2px;left:4px;right:4px;height:2px;
+  border:1.5px solid rgba(150,150,165,.7);border-radius:2px;background:none;
 }
 
 /* ── NOTE TEXT ── */
 .note-label{
   font-family:'Share Tech Mono',monospace;
   font-size:8px;letter-spacing:.35em;text-transform:uppercase;
-  color:rgba(0,0,0,.35);margin-bottom:10px;display:block;
+  color:rgba(0,0,0,.38);margin-bottom:10px;display:block;
 }
-.note.c-red .note-label,.note.c-navy .note-label{color:rgba(255,255,255,.45);}
+.note.c-red .note-label,.note.c-navy .note-label{color:rgba(255,255,255,.5);}
 .note-title{
-  font-size:19px;font-weight:700;line-height:1.1;
+  font-size:20px;font-weight:700;line-height:1.1;
   color:#111;letter-spacing:-.02em;margin-bottom:4px;word-break:break-word;
 }
 .note.c-red .note-title,.note.c-navy .note-title{color:#fff;}
@@ -159,76 +159,85 @@ html,body{
   font-size:12px;line-height:1.72;color:#444;
   display:none;margin-top:10px;word-break:break-word;
 }
-.note.c-red .note-body,.note.c-navy .note-body{color:rgba(255,255,255,.8);}
+.note.c-red .note-body,.note.c-navy .note-body{color:rgba(255,255,255,.82);}
 .note.expanded .note-body{display:block;}
+
 .note-title[contenteditable],.note-body[contenteditable]{
-  outline:none;border-bottom:1.5px dashed rgba(0,0,0,.25);cursor:text;
+  outline:none;border-bottom:1.5px dashed rgba(0,0,0,.3);cursor:text;
 }
+
 .note-close{
   position:absolute;top:8px;right:8px;
-  width:20px;height:20px;border-radius:50%;
-  background:rgba(0,0,0,.07);border:none;
+  width:20px;height:20px;
+  background:rgba(0,0,0,.08);border:none;border-radius:50%;
   font-size:10px;cursor:pointer;font-weight:700;
-  display:none;align-items:center;justify-content:center;color:#555;
-  transition:background .12s;
+  display:none;align-items:center;justify-content:center;
+  color:#555;transition:background .12s;
 }
-.note.c-red .note-close,.note.c-navy .note-close{background:rgba(255,255,255,.15);color:#fff;}
+.note.c-red .note-close,.note.c-navy .note-close{background:rgba(255,255,255,.18);color:#fff;}
 .note.expanded .note-close{display:flex;}
-.note-close:hover{background:rgba(0,0,0,.18)!important;}
+.note-close:hover{background:rgba(0,0,0,.2)!important;}
+
 .note-hint{
-  position:absolute;bottom:10px;left:0;right:0;text-align:center;
+  position:absolute;bottom:10px;left:0;right:0;
+  text-align:center;
   font-family:'Share Tech Mono',monospace;font-size:7px;
-  letter-spacing:.2em;color:rgba(0,0,0,.18);text-transform:uppercase;
+  letter-spacing:.2em;color:rgba(0,0,0,.2);text-transform:uppercase;
 }
 .note.expanded .note-hint{display:none;}
+
 .note-actions{
   display:none;gap:6px;margin-top:12px;
-  border-top:1px dashed rgba(0,0,0,.1);padding-top:10px;
+  border-top:1px dashed rgba(0,0,0,.12);padding-top:10px;
 }
 .note.expanded .note-actions{display:flex;}
 .note-act-btn{
   font-family:'Share Tech Mono',monospace;font-size:8px;
   letter-spacing:.15em;padding:5px 12px;
-  background:#fff;border:1.5px solid #bbb;color:#444;cursor:pointer;
-  text-transform:uppercase;border-radius:2px;transition:all .12s;
+  background:#fff;border:1.5px solid #bbb;
+  color:#444;cursor:pointer;text-transform:uppercase;
+  border-radius:2px;transition:all .12s;
 }
 .note-act-btn:hover{background:#111;color:#fff;border-color:#111;}
 .note-act-btn.primary{background:#e8001d;border-color:#e8001d;color:#fff;}
-.note-act-btn.primary:hover{background:#a0001a;border-color:#a0001a;}
+.note-act-btn.primary:hover{background:#b0001a;border-color:#b0001a;}
 
 /* ── HUD ── */
 #logo{
   position:fixed;top:18px;left:18px;z-index:200;
   font-family:'Share Tech Mono',monospace;font-size:10px;
   letter-spacing:.35em;text-transform:uppercase;
-  color:#222;background:rgba(255,255,255,.88);
+  color:#333;background:rgba(255,255,255,.85);
   padding:6px 14px;border-radius:2px;
-  border:1.5px solid rgba(0,0,0,.2);box-shadow:2px 2px 0 rgba(0,0,0,.1);
+  border:1.5px solid rgba(0,0,0,.18);
+  box-shadow:2px 2px 0 rgba(0,0,0,.1);
 }
 #zoom-hud{
   position:fixed;top:18px;right:18px;z-index:200;
   font-family:'Share Tech Mono',monospace;font-size:10px;
-  letter-spacing:.18em;color:#222;background:rgba(255,255,255,.88);
+  letter-spacing:.18em;color:#444;background:rgba(255,255,255,.85);
   padding:6px 12px;border-radius:2px;
-  border:1.5px solid rgba(0,0,0,.2);box-shadow:2px 2px 0 rgba(0,0,0,.1);
+  border:1.5px solid rgba(0,0,0,.18);
+  box-shadow:2px 2px 0 rgba(0,0,0,.1);
 }
 
 /* ── TOOLBAR ── */
 #toolbar{
   position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
   z-index:200;display:flex;gap:0;align-items:stretch;
-  background:rgba(255,255,255,.93);border-radius:4px;
-  border:1.5px solid rgba(0,0,0,.2);box-shadow:3px 3px 0 rgba(0,0,0,.12);
+  background:rgba(255,255,255,.92);border-radius:4px;
+  border:1.5px solid rgba(0,0,0,.2);
+  box-shadow:3px 3px 0 rgba(0,0,0,.12);
 }
 .tb-label{
   font-family:'Share Tech Mono',monospace;font-size:8px;
   letter-spacing:.28em;color:#999;
   padding:0 14px;display:flex;align-items:center;
-  border-right:1px solid #ddd;text-transform:uppercase;
+  border-right:1px solid #e0e0e0;text-transform:uppercase;
 }
-.tb-sep{width:1px;background:#ddd;}
+.tb-sep{width:1px;background:#e0e0e0;}
 .tb-btn{
-  width:42px;height:40px;border:none;border-right:1px solid #ddd;
+  width:42px;height:40px;border:none;border-right:1px solid #e0e0e0;
   display:flex;align-items:center;justify-content:center;
   font-size:15px;cursor:pointer;background:transparent;
   color:#333;transition:background .12s,color .12s;
@@ -236,48 +245,54 @@ html,body{
 .tb-btn:hover{background:#111;color:#fff;}
 .tb-btn:last-child{border-right:none;}
 .tb-btn.on{background:#e8001d;color:#fff;}
+.tb-btn.on:hover{background:#b0001a;}
 
 /* ── COLOR PICKER ── */
 #color-picker{
   position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
   z-index:201;display:none;gap:6px;align-items:center;
   background:rgba(255,255,255,.95);border-radius:4px;
-  border:1.5px solid rgba(0,0,0,.18);box-shadow:3px 3px 0 rgba(0,0,0,.12);
+  border:1.5px solid rgba(0,0,0,.18);
+  box-shadow:3px 3px 0 rgba(0,0,0,.12);
   padding:10px 14px;
 }
 #color-picker.show{display:flex;}
 .cp-swatch{
   width:26px;height:26px;cursor:pointer;
-  border:1.5px solid rgba(0,0,0,.25);border-radius:2px;transition:transform .12s;
+  border:1.5px solid rgba(0,0,0,.25);border-radius:2px;
+  transition:transform .12s;
 }
 .cp-swatch:hover{transform:scale(1.2);}
 
 /* ── DRAW TOOLBAR ── */
 #draw-toolbar{
   position:fixed;top:18px;left:50%;transform:translateX(-50%);
-  z-index:201;display:none;gap:0;align-items:stretch;
+  z-index:200;display:none;gap:0;align-items:stretch;
   background:rgba(255,255,255,.95);border-radius:4px;
-  border:1.5px solid rgba(0,0,0,.2);box-shadow:3px 3px 0 rgba(0,0,0,.12);
+  border:1.5px solid rgba(0,0,0,.2);
+  box-shadow:3px 3px 0 rgba(0,0,0,.12);
 }
 #draw-toolbar.show{display:flex;}
 .dt-label{
   font-family:'Share Tech Mono',monospace;font-size:8px;
   letter-spacing:.28em;color:#e8001d;font-weight:700;
   padding:0 14px;display:flex;align-items:center;
-  border-right:1px solid #ddd;text-transform:uppercase;
+  border-right:1px solid #e0e0e0;text-transform:uppercase;
 }
-.dt-sep{width:1px;background:#ddd;}
+.dt-sep{width:1px;background:#e0e0e0;}
 .dt-color{
-  width:36px;height:40px;cursor:pointer;border-right:1px solid #ddd;
-  flex-shrink:0;transition:opacity .12s;position:relative;
+  width:36px;height:40px;cursor:pointer;
+  border-right:1px solid #e0e0e0;flex-shrink:0;
+  transition:opacity .12s;position:relative;
 }
 .dt-color:hover{opacity:.7;}
 .dt-color.active::after{
-  content:'';position:absolute;inset:3px;border:2px solid #111;border-radius:1px;
+  content:'';position:absolute;inset:3px;
+  border:2px solid #111;border-radius:1px;pointer-events:none;
 }
 .dt-size-wrap{
   display:flex;align-items:center;gap:6px;
-  padding:0 12px;border-right:1px solid #ddd;
+  padding:0 12px;border-right:1px solid #e0e0e0;
 }
 .dt-size-label{
   font-family:'Share Tech Mono',monospace;font-size:7px;
@@ -285,7 +300,7 @@ html,body{
 }
 .dt-size-wrap input[type=range]{width:64px;accent-color:#e8001d;cursor:pointer;}
 .dt-btn{
-  height:40px;padding:0 13px;border:none;border-right:1px solid #ddd;
+  height:40px;padding:0 13px;border:none;border-right:1px solid #e0e0e0;
   background:transparent;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:8px;
   letter-spacing:.18em;color:#555;text-transform:uppercase;
@@ -297,8 +312,9 @@ html,body{
 .dt-btn.danger{color:#e8001d;}
 .dt-btn.danger:hover{background:#e8001d;color:#fff;}
 .dt-done{background:#e8001d;color:#fff;font-weight:700;}
-.dt-done:hover{background:#a0001a!important;color:#fff!important;}
+.dt-done:hover{background:#b0001a!important;color:#fff!important;}
 
+body.draw-mode *{cursor:crosshair!important;}
 body.draw-mode .note{pointer-events:none!important;}
 body.draw-mode #toolbar{opacity:.2;pointer-events:none;transition:opacity .3s;}
 
@@ -307,11 +323,12 @@ body{cursor:none!important;}
 #cur{
   position:fixed;z-index:9999;pointer-events:none;
   width:10px;height:10px;border-radius:50%;
-  background:#e8001d;transform:translate(-50%,-50%);
+  background:#e8001d;
+  transform:translate(-50%,-50%);
   transition:width .1s,height .1s,border-radius .1s;
 }
-#cur.grab{background:transparent;width:18px;height:18px;border:2px solid #fff;}
-#cur.draw{background:#fff;width:6px;height:6px;}
+#cur.grab{background:transparent;width:18px;height:18px;border:2px solid #333;}
+#cur.draw{background:#333;width:6px;height:6px;border-radius:50%;}
 
 /* ── IDLE CLOCK ── */
 #idle-clk{
@@ -321,23 +338,23 @@ body{cursor:none!important;}
 }
 #idle-clk.show{opacity:1;}
 #clk-t{
-  font-family:'Handjet',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:min(22vw,26vh);
-  font-weight:700;
-  letter-spacing:.06em;
-  color:#FF2BCD;
+  font-weight:400;letter-spacing:.04em;
+  color:rgb(0,0,250);
   line-height:1;text-align:center;
-  /* vertical stretch */
-  transform:scaleY(1.55);
+  font-variant-numeric:tabular-nums;
+  /* stretch vertically */
+  transform:scaleY(1.5);
   transform-origin:center center;
   display:block;
 }
 #clk-d{
-  font-family:'Handjet',monospace;
-  font-size:clamp(12px,1.4vw,20px);
-  letter-spacing:.4em;
-  color:rgba(255,43,205,.65);
-  margin-top:44px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(10px,1.2vw,16px);
+  letter-spacing:.5em;
+  color:rgba(0,0,250,.7);
+  margin-top:40px; /* extra space due to scaleY */
   text-transform:uppercase;
 }
 
@@ -345,51 +362,63 @@ body{cursor:none!important;}
 #note-modal{
   position:fixed;inset:0;z-index:400;
   display:none;align-items:center;justify-content:center;
-  background:rgba(100,100,100,.7);backdrop-filter:blur(4px);
+  background:rgba(180,188,200,.7);
+  backdrop-filter:blur(4px);
 }
 #note-modal.show{display:flex;}
 #note-form{
   background:#fff;
   border:1.5px solid rgba(0,0,0,.2);
-  box-shadow:5px 5px 0 rgba(0,0,0,.2);
-  border-radius:3px;padding:28px;width:350px;position:relative;
+  box-shadow:5px 5px 0 rgba(0,0,0,.15);
+  border-radius:3px;
+  padding:28px;width:350px;
+  position:relative;
 }
+/* tape on modal */
 #note-form::before{
-  content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-1.5deg);
-  width:54px;height:16px;background:rgba(80,160,230,.72);border-radius:2px;
+  content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-1deg);
+  width:56px;height:17px;background:rgba(100,170,230,.7);border-radius:2px;
 }
-#note-form h3{font-size:15px;font-weight:700;color:#111;margin-bottom:20px;}
+#note-form h3{
+  font-size:15px;font-weight:700;
+  color:#111;margin-bottom:22px;letter-spacing:-.01em;
+}
 .nf-field{margin-bottom:14px;}
 .nf-label{
   font-family:'Share Tech Mono',monospace;font-size:8px;
-  letter-spacing:.35em;text-transform:uppercase;color:#999;display:block;margin-bottom:6px;
+  letter-spacing:.35em;text-transform:uppercase;
+  color:#999;display:block;margin-bottom:6px;
 }
 .nf-input,.nf-textarea{
-  width:100%;border:none;border-bottom:1.5px solid #ccc;
+  width:100%;
+  border:none;border-bottom:1.5px solid #ccc;
   color:#111;padding:8px 2px;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
-  font-size:14px;outline:none;transition:border-color .15s;background:transparent;resize:none;
+  font-size:14px;outline:none;
+  transition:border-color .15s;background:transparent;resize:none;
 }
 .nf-input:focus,.nf-textarea:focus{border-color:#e8001d;}
-.nf-textarea{height:80px;line-height:1.65;border:1.5px solid #ccc;padding:8px;}
+.nf-textarea{height:80px;line-height:1.65;border:1.5px solid #ccc;border-bottom:1.5px solid #ccc;padding:8px;}
 .nf-textarea:focus{border-color:#e8001d;}
 .nf-colors{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
 .nf-color{
   width:30px;height:30px;cursor:pointer;
-  border:1.5px solid rgba(0,0,0,.2);border-radius:2px;transition:transform .12s;
+  border:1.5px solid rgba(0,0,0,.2);border-radius:2px;
+  transition:transform .12s;
 }
 .nf-color:hover{transform:scale(1.15);}
 .nf-color.selected{outline:2.5px solid #333;outline-offset:2px;}
 .nf-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
 .nf-btn{
-  padding:9px 20px;font-family:'Share Tech Mono',monospace;font-size:9px;
+  padding:9px 20px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
   letter-spacing:.18em;cursor:pointer;text-transform:uppercase;
   border-radius:2px;transition:all .12s;
 }
 .nf-btn.cancel{background:#fff;border:1.5px solid #bbb;color:#666;}
 .nf-btn.cancel:hover{background:#111;border-color:#111;color:#fff;}
 .nf-btn.create{background:#e8001d;border:1.5px solid #e8001d;color:#fff;font-weight:700;}
-.nf-btn.create:hover{background:#a0001a;border-color:#a0001a;}
+.nf-btn.create:hover{background:#b0001a;border-color:#b0001a;}
 </style>
 </head>
 <body>
@@ -401,11 +430,9 @@ body{cursor:none!important;}
 <div id="board">
   <div id="world">
     <svg id="connections"></svg>
+    <canvas id="draw-canvas" width="8000" height="8000"></canvas>
   </div>
 </div>
-
-<!-- DRAW CANVAS — fixed, outside world, covers full screen -->
-<canvas id="draw-canvas" width="1" height="1"></canvas>
 
 <!-- Draw toolbar -->
 <div id="draw-toolbar">
@@ -415,9 +442,8 @@ body{cursor:none!important;}
   <div class="dt-color" style="background:#e8001d" data-color="#e8001d"></div>
   <div class="dt-color" style="background:#0028c8" data-color="#0028c8"></div>
   <div class="dt-color" style="background:#007a30" data-color="#007a30"></div>
-  <div class="dt-color" style="background:#ABFF23;outline:1px solid #888" data-color="#ABFF23"></div>
-  <div class="dt-color" style="background:#FF2BCD" data-color="#FF2BCD"></div>
-  <div class="dt-color" style="background:#fff;outline:1px solid #bbb" data-color="#ffffff"></div>
+  <div class="dt-color" style="background:#c07800" data-color="#c07800"></div>
+  <div class="dt-color" style="background:#fff;outline:1px solid #ccc" data-color="#cdd2dc"></div>
   <div class="dt-sep"></div>
   <div class="dt-size-wrap">
     <span class="dt-size-label">Size</span>
@@ -433,13 +459,13 @@ body{cursor:none!important;}
 <!-- Toolbar -->
 <div id="toolbar">
   <span class="tb-label">Board</span>
-  <button class="tb-btn" id="btn-add">＋</button>
-  <button class="tb-btn" id="btn-reset">⊙</button>
+  <button class="tb-btn" id="btn-add" title="New note">＋</button>
+  <button class="tb-btn" id="btn-reset" title="Reset view">⊙</button>
   <button class="tb-btn" id="btn-zoomin">＋</button>
   <button class="tb-btn" id="btn-zoomout">－</button>
   <div class="tb-sep"></div>
-  <button class="tb-btn" id="btn-draw">✏</button>
-  <button class="tb-btn" id="btn-shuffle">⟳</button>
+  <button class="tb-btn" id="btn-draw" title="Draw">✏</button>
+  <button class="tb-btn" id="btn-shuffle" title="Shuffle">⟳</button>
 </div>
 
 <!-- New note modal -->
@@ -457,15 +483,14 @@ body{cursor:none!important;}
     <div class="nf-field">
       <label class="nf-label">Color</label>
       <div class="nf-colors">
-        <div class="nf-color selected" style="background:#fff"    data-color="c-white"></div>
-        <div class="nf-color" style="background:#fff;background-image:repeating-linear-gradient(transparent,transparent 5px,rgba(100,140,220,.3) 6px)" data-color="c-ruled"></div>
-        <div class="nf-color" style="background:#f5f0be"          data-color="c-yellow"></div>
-        <div class="nf-color" style="background:#f5c8ce"          data-color="c-pink"></div>
-        <div class="nf-color" style="background:#c4d8f0"          data-color="c-blue"></div>
-        <div class="nf-color" style="background:#c8e8d0"          data-color="c-green"></div>
-        <div class="nf-color" style="background:#e8e4cc"          data-color="c-beige"></div>
-        <div class="nf-color" style="background:#d00018"          data-color="c-red"></div>
-        <div class="nf-color" style="background:#1a2550"          data-color="c-navy"></div>
+        <div class="nf-color selected" style="background:#fff"            data-color="c-white"></div>
+        <div class="nf-color"          style="background:#f5f0c0"         data-color="c-yellow"></div>
+        <div class="nf-color"          style="background:#f5c8cf"         data-color="c-pink"></div>
+        <div class="nf-color"          style="background:#c4d8f0"         data-color="c-blue"></div>
+        <div class="nf-color"          style="background:#c8e8d0"         data-color="c-green"></div>
+        <div class="nf-color"          style="background:#e8e4cc"         data-color="c-beige"></div>
+        <div class="nf-color"          style="background:#e8001d"         data-color="c-red"></div>
+        <div class="nf-color"          style="background:#1a2550"         data-color="c-navy"></div>
       </div>
     </div>
     <div class="nf-actions">
@@ -483,105 +508,99 @@ body{cursor:none!important;}
 
 <script>
 // ═══════════════════════════════════════════════
-// FONT POOLS
-// ═══════════════════════════════════════════════
-const FONTS_EN = [
-  "'EB Garamond', Georgia, serif",
-  "'Helvetica Neue', Helvetica, Arial, sans-serif",
-  "'IBM Plex Mono', monospace",
-  "'Handjet', monospace",
-];
-const FONTS_JA = [
-  "'Yu Gothic', '游ゴシック', YuGothic, sans-serif",
-  "'Yu Mincho', '游明朝', YuMincho, serif",      // closest to リュウミン
-  "'Hiragino Kaku Gothic ProN', sans-serif",       // closest to Shin Maru
-  "'Noto Serif JP', serif",                        // closest to 筑紫ゴシック
-];
-function randFont() {
-  const all = [...FONTS_EN, ...FONTS_JA];
-  return all[Math.floor(Math.random()*all.length)];
-}
-function isJa(text) { return /[\u3000-\u9fff\uff00-\uffef]/.test(text); }
-function pickFont(text) {
-  return isJa(text)
-    ? FONTS_JA[Math.floor(Math.random()*FONTS_JA.length)]
-    : FONTS_EN[Math.floor(Math.random()*FONTS_EN.length)];
-}
-
-// ═══════════════════════════════════════════════
-// DECO TEMPLATES
-// ═══════════════════════════════════════════════
-const DECOS = [
-  // single tape top-center blue
-  () => `<div class="deco-tape tape-blue tp-tc"></div>`,
-  // single tape top-center kraft
-  () => `<div class="deco-tape tape-kraft tp-tc"></div>`,
-  // two blue tapes top corners
-  () => `<div class="deco-tape tape-blue tp-tl"></div><div class="deco-tape tape-blue tp-tr"></div>`,
-  // two kraft tapes top corners
-  () => `<div class="deco-tape tape-kraft tp-tl"></div><div class="deco-tape tape-kraft tp-tr"></div>`,
-  // blue tape top-right only
-  () => `<div class="deco-tape tape-blue tape-short tp-tr"></div>`,
-  // white tape top-left
-  () => `<div class="deco-tape tape-white tp-tl"></div>`,
-  // bottom tapes
-  () => `<div class="deco-tape tape-kraft tp-bl"></div><div class="deco-tape tape-kraft tp-br"></div>`,
-  // mixed
-  () => `<div class="deco-tape tape-blue tp-tl"></div><div class="deco-tape tape-kraft tp-br"></div>`,
-  // red pin center
-  () => `<div class="deco-pin pin-red pp-tc"></div>`,
-  // silver pins two corners
-  () => `<div class="deco-pin pin-silver pp-tl"></div><div class="deco-pin pin-silver pp-tr"></div>`,
-  // gold pins
-  () => `<div class="deco-pin pin-gold pp-tl"></div><div class="deco-pin pin-gold pp-tr"></div>`,
-  // clip
-  () => `<div class="deco-clip"></div>`,
-];
-
-// ═══════════════════════════════════════════════
 // NOTE DATA
 // ═══════════════════════════════════════════════
 const NOTES = [
-  { id:'hero',    color:'c-white',  label:'00 / Hero',    title:'YOUR NAME',       body:'Creative Designer — Tokyo\nDesigner who refuses to be comfortable.', x:320,  y:240, rot:-1.8, z:10, conns:['about','thought'], decoIdx:0  },
-  { id:'about',   color:'c-beige',  label:'01 / About',   title:'Who I Am',        body:'デザインをして N 年。常に既存のフォーマットへの疑問から始める。\n\n「整えることが目的ではない。\n整えた後に何が起きるかが、デザインだ。」', x:640, y:160, rot:1.5, z:11, conns:['works'],   decoIdx:8  },
-  { id:'thought', color:'c-yellow', label:'02 / Thought', title:'Manifesto',       body:'01 — デザインは問いである\n02 — 美しさは機能そのもの\n03 — 余白は始まりの場所\n04 — 流行を追うデザインは死んでいく', x:340, y:520, rot:0.9, z:12, conns:['skills'],  decoIdx:1  },
-  { id:'works',   color:'c-ruled',  label:'03 / Works',   title:'Selected\nWorks', body:'▸ PROJECT ALPHA\nBranding / Identity\n\n▸ PROJECT BETA\nUI / Interaction\n\n▸ PROJECT GAMMA\nEditorial', x:940, y:340, rot:-1.2, z:13, conns:['contact'], decoIdx:11 },
-  { id:'skills',  color:'c-pink',   label:'04 / Skills',  title:'Tech Stack',      body:'Figma · Illustrator · Photoshop\nAfter Effects · Blender\n\nHTML / CSS / JavaScript\nThree.js · React · GSAP', x:640, y:590, rot:2.1, z:14, conns:['contact'], decoIdx:2  },
-  { id:'contact', color:'c-blue',   label:'05 / Contact', title:"Let's\nTalk",     body:'hello@yourname.com\nTokyo / Remote\n\nTwitter · Instagram · Behance', x:1020,y:560, rot:-0.7, z:15, conns:[],          decoIdx:9  },
-  { id:'red1',    color:'c-red',    label:'Now',          title:'Available\nfor Work', body:'新しいプロジェクトを\n随時受け付けています', x:220, y:430, rot:3.5,  z:9, conns:[],          decoIdx:6  },
-  { id:'navy1',   color:'c-navy',   label:'Note',         title:'✦',               body:'宇宙の果てまでデザインしていく', x:950,  y:180, rot:-2.8, z:8, conns:[],          decoIdx:10 },
+  {
+    id:'hero', color:'c-white', label:'00 / Hero',
+    title:'YOUR NAME',
+    body:'Creative Designer — Tokyo\nDesigner who refuses to be comfortable.',
+    x:320, y:240, rot:-1.8, z:10, conns:['about','thought'],
+    deco:{type:'tape', variant:'tape-h tape-kraft tape-pos-tc'}
+  },
+  {
+    id:'about', color:'c-beige', label:'01 / About',
+    title:'Who I Am',
+    body:'デザインをして N 年。常に既存のフォーマットへの疑問から始める。\n\n「整えることが目的ではない。整えた後に何が起きるかが、デザインだ。」',
+    x:640, y:160, rot:1.5, z:11, conns:['works'],
+    deco:{type:'pin', variant:'pin-red'}
+  },
+  {
+    id:'thought', color:'c-yellow', label:'02 / Thought',
+    title:'Manifesto',
+    body:'01 — デザインは問いである\n02 — 美しさは機能そのもの\n03 — 余白は始まりの場所\n04 — 流行を追うデザインは死んでいく',
+    x:340, y:520, rot:0.9, z:12, conns:['skills'],
+    deco:{type:'tape', variant:'tape-h tape-pos-tl'}
+  },
+  {
+    id:'works', color:'c-white', label:'03 / Works',
+    title:'Selected\nWorks',
+    body:'▸ PROJECT ALPHA\nBranding / Identity\n\n▸ PROJECT BETA\nUI / Interaction\n\n▸ PROJECT GAMMA\nEditorial',
+    x:940, y:340, rot:-1.2, z:13, conns:['contact'],
+    deco:{type:'clip'}
+  },
+  {
+    id:'skills', color:'c-pink', label:'04 / Skills',
+    title:'Tech Stack',
+    body:'Figma · Illustrator · Photoshop\nAfter Effects · Blender\n\nHTML / CSS / JavaScript\nThree.js · React · GSAP',
+    x:640, y:590, rot:2.1, z:14, conns:['contact'],
+    deco:{type:'tape', variant:'tape-h tape-pos-tr'}
+  },
+  {
+    id:'contact', color:'c-blue', label:'05 / Contact',
+    title:"Let's\nTalk",
+    body:'hello@yourname.com\nTokyo / Remote\n\nTwitter · Instagram · Behance',
+    x:1020, y:560, rot:-0.7, z:15, conns:[],
+    deco:{type:'pin', variant:'pin-silver'}
+  },
+  {
+    id:'red1', color:'c-red', label:'Now',
+    title:'Available\nfor Work',
+    body:'新しいプロジェクトを\n随時受け付けています',
+    x:220, y:430, rot:3.5, z:9, conns:[],
+    deco:{type:'tape', variant:'tape-h tape-white tape-pos-tc'}
+  },
+  {
+    id:'navy1', color:'c-navy', label:'Note',
+    title:'✦',
+    body:'宇宙の果てまで\nデザインしていく',
+    x:950, y:180, rot:-2.8, z:8, conns:[],
+    deco:{type:'pin', variant:'pin-gold'}
+  },
 ];
 
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
 let viewX=120, viewY=80, viewScale=1, topZ=20, isDrawMode=false, selColor='c-white';
-const world   = document.getElementById('world');
-const svgEl   = document.getElementById('connections');
-const zoomHud = document.getElementById('zoom-hud');
-const noteModal= document.getElementById('note-modal');
-const board   = document.getElementById('board');
+const world=document.getElementById('world');
+const svgEl=document.getElementById('connections');
+const zoomHud=document.getElementById('zoom-hud');
+const noteModal=document.getElementById('note-modal');
 
 // ═══════════════════════════════════════════════
 // CREATE NOTE
 // ═══════════════════════════════════════════════
+function makeDecoration(deco) {
+  if (!deco) return '';
+  if (deco.type === 'pin')  return `<div class="pin ${deco.variant||'pin-red'}"></div>`;
+  if (deco.type === 'tape') return `<div class="tape ${deco.variant||'tape-h tape-pos-tc'}"></div>`;
+  if (deco.type === 'clip') return `<div class="clip"></div>`;
+  return '';
+}
+
 function createNote(d) {
   const el = document.createElement('div');
   el.className = `note ${d.color}`;
   el.id = 'n-' + d.id;
   el.style.cssText = `left:${d.x}px;top:${d.y}px;z-index:${d.z};transform:rotate(${d.rot}deg);width:230px;`;
-
-  const decoFn = DECOS[d.decoIdx !== undefined ? d.decoIdx % DECOS.length : Math.floor(Math.random()*DECOS.length)];
-  const titleFont = pickFont(d.title);
-  const bodyFont  = pickFont(d.body);
-
   el.innerHTML = `
-    ${decoFn()}
+    ${makeDecoration(d.deco)}
     <div class="note-paper">
       <span class="note-label">${d.label}</span>
-      <div class="note-title" style="font-family:${titleFont}">${d.title.replace(/\n/g,'<br>')}</div>
+      <div class="note-title">${d.title.replace(/\n/g,'<br>')}</div>
       <button class="note-close">✕</button>
-      <div class="note-body" style="font-family:${bodyFont}">${d.body.replace(/\n/g,'<br>')}</div>
+      <div class="note-body">${d.body.replace(/\n/g,'<br>')}</div>
       <div class="note-actions">
         <button class="note-act-btn primary" data-action="edit">Edit</button>
         <button class="note-act-btn" data-action="delete">Delete</button>
@@ -589,10 +608,23 @@ function createNote(d) {
       <div class="note-hint">click to open</div>
     </div>
   `;
-  el.addEventListener('mousedown', e => { if(isDrawMode)return; e.stopPropagation(); bringFront(el,d); dragNote(e,el,d); });
-  el.addEventListener('click', e => { if(el._dragged||isDrawMode)return; if(e.target.closest('.note-close,.note-act-btn'))return; toggleNote(el); });
+  el.addEventListener('mousedown', e => {
+    if (isDrawMode) return;
+    e.stopPropagation();
+    bringFront(el, d);
+    dragNote(e, el, d);
+  });
+  el.addEventListener('click', e => {
+    if (el._dragged || isDrawMode) return;
+    if (e.target.closest('.note-close,.note-act-btn')) return;
+    toggleNote(el);
+  });
   el.querySelector('.note-close').addEventListener('click', e => { e.stopPropagation(); closeNote(el); });
-  el.querySelectorAll('.note-act-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); b.dataset.action==='edit'?editNote(el,d):deleteNote(el,d); }));
+  el.querySelectorAll('.note-act-btn').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    if (b.dataset.action === 'edit') editNote(el, d);
+    else deleteNote(el, d);
+  }));
   world.appendChild(el);
   return el;
 }
@@ -600,47 +632,68 @@ function createNote(d) {
 NOTES.forEach(d => createNote(d));
 redrawConns();
 
-function toggleNote(el){ const was=el.classList.contains('expanded'); document.querySelectorAll('.note.expanded').forEach(n=>closeNote(n)); if(!was){el.classList.add('expanded');bringFrontEl(el);} }
-function closeNote(el){ el.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable')); el.classList.remove('expanded'); }
-function bringFront(el,d){ topZ++; el.style.zIndex=topZ; if(d)d.z=topZ; }
-function bringFrontEl(el){ topZ++; el.style.zIndex=topZ; }
-function editNote(el,d){
-  const t=el.querySelector('.note-title'),b=el.querySelector('.note-body');
-  t.setAttribute('contenteditable','true'); b.setAttribute('contenteditable','true'); t.focus();
-  const save=()=>{ d.title=t.innerText; d.body=b.innerText; t.removeAttribute('contenteditable'); b.removeAttribute('contenteditable'); };
-  t.addEventListener('blur',save,{once:true}); b.addEventListener('blur',save,{once:true});
+function toggleNote(el) {
+  const was = el.classList.contains('expanded');
+  document.querySelectorAll('.note.expanded').forEach(n => closeNote(n));
+  if (!was) { el.classList.add('expanded'); bringFrontEl(el); }
 }
-function deleteNote(el,d){
-  el.style.transition='opacity .22s,transform .22s'; el.style.opacity='0'; el.style.transform=`rotate(${d.rot}deg) scale(.85)`;
-  setTimeout(()=>{ el.remove(); NOTES.splice(NOTES.indexOf(d),1); redrawConns(); },240);
+function closeNote(el) {
+  el.querySelectorAll('[contenteditable]').forEach(e => e.removeAttribute('contenteditable'));
+  el.classList.remove('expanded');
+}
+function bringFront(el, d) { topZ++; el.style.zIndex = topZ; if(d) d.z = topZ; }
+function bringFrontEl(el) { topZ++; el.style.zIndex = topZ; }
+
+function editNote(el, d) {
+  const t = el.querySelector('.note-title'), b = el.querySelector('.note-body');
+  t.setAttribute('contenteditable','true'); b.setAttribute('contenteditable','true'); t.focus();
+  const save = () => { d.title=t.innerText; d.body=b.innerText; t.removeAttribute('contenteditable'); b.removeAttribute('contenteditable'); };
+  t.addEventListener('blur', save, {once:true}); b.addEventListener('blur', save, {once:true});
+}
+function deleteNote(el, d) {
+  el.style.transition = 'opacity .22s,transform .22s';
+  el.style.opacity = '0'; el.style.transform = `rotate(${d.rot}deg) scale(.85)`;
+  setTimeout(() => { el.remove(); NOTES.splice(NOTES.indexOf(d),1); redrawConns(); }, 240);
 }
 
 // ═══════════════════════════════════════════════
 // NOTE DRAG
 // ═══════════════════════════════════════════════
-function dragNote(e,el,d){
-  if(e.button!==0)return; el._dragged=false;
-  const sx=e.clientX,sy=e.clientY,ox=d.x,oy=d.y;
-  const mv=ev=>{ const dx=(ev.clientX-sx)/viewScale,dy=(ev.clientY-sy)/viewScale; if(Math.abs(dx)>3||Math.abs(dy)>3){el._dragged=true;el.classList.add('dragging');} d.x=ox+dx;d.y=oy+dy;el.style.left=d.x+'px';el.style.top=d.y+'px';redrawConns(); };
-  const up=()=>{ el.classList.remove('dragging'); window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); setTimeout(()=>el._dragged=false,10); };
+function dragNote(e, el, d) {
+  if (e.button !== 0) return;
+  el._dragged = false;
+  const sx=e.clientX, sy=e.clientY, ox=d.x, oy=d.y;
+  const mv = ev => {
+    const dx=(ev.clientX-sx)/viewScale, dy=(ev.clientY-sy)/viewScale;
+    if (Math.abs(dx)>3||Math.abs(dy)>3) { el._dragged=true; el.classList.add('dragging'); }
+    d.x=ox+dx; d.y=oy+dy;
+    el.style.left=d.x+'px'; el.style.top=d.y+'px';
+    redrawConns();
+  };
+  const up = () => {
+    el.classList.remove('dragging');
+    window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up);
+    setTimeout(()=>el._dragged=false,10);
+  };
   window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
 }
 
 // ═══════════════════════════════════════════════
 // CONNECTIONS
 // ═══════════════════════════════════════════════
-function redrawConns(){
-  svgEl.innerHTML='';
-  NOTES.forEach(d=>{
-    if(!d.conns?.length)return;
-    const fe=document.getElementById('n-'+d.id); if(!fe)return;
-    const fx=d.x+115,fy=d.y+65;
-    d.conns.forEach(tid=>{
-      const td=NOTES.find(n=>n.id===tid); if(!td)return;
-      const tx=td.x+115,ty=td.y+65,mx=(fx+tx)/2,my=(fy+ty)/2-20;
-      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+function redrawConns() {
+  svgEl.innerHTML = '';
+  NOTES.forEach(d => {
+    if (!d.conns?.length) return;
+    const fe = document.getElementById('n-'+d.id); if (!fe) return;
+    const fx=d.x+115, fy=d.y+65;
+    d.conns.forEach(tid => {
+      const td = NOTES.find(n=>n.id===tid); if (!td) return;
+      const tx=td.x+115, ty=td.y+65;
+      const mx=(fx+tx)/2, my=(fy+ty)/2-20;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','path');
       p.setAttribute('d',`M${fx},${fy} Q${mx},${my} ${tx},${ty}`);
-      p.setAttribute('fill','none'); p.setAttribute('stroke','rgba(255,255,255,0.28)');
+      p.setAttribute('fill','none'); p.setAttribute('stroke','rgba(0,0,0,0.2)');
       p.setAttribute('stroke-width','1.5'); p.setAttribute('stroke-dasharray','5,4');
       svgEl.appendChild(p);
     });
@@ -650,52 +703,101 @@ function redrawConns(){
 // ═══════════════════════════════════════════════
 // BOARD PAN
 // ═══════════════════════════════════════════════
-let panning=false,pSX,pSY,pOX,pOY;
-board.addEventListener('mousedown',e=>{
-  if(isDrawMode)return;
-  if(e.target!==board&&e.target!==world&&!e.target.closest('#connections'))return;
-  panning=true;pSX=e.clientX;pSY=e.clientY;pOX=viewX;pOY=viewY;board.style.cursor='grabbing';
-});
-window.addEventListener('mousemove',e=>{ if(!panning)return; viewX=pOX+(e.clientX-pSX);viewY=pOY+(e.clientY-pSY);applyT(); });
-window.addEventListener('mouseup',()=>{ panning=false;board.style.cursor=''; });
-board.addEventListener('wheel',e=>{ e.preventDefault(); if(isDrawMode)return; const d=e.deltaY>0?.88:1.14; const ns=Math.max(.1,Math.min(4,viewScale*d)); viewX=e.clientX-(e.clientX-viewX)*(ns/viewScale);viewY=e.clientY-(e.clientY-viewY)*(ns/viewScale);viewScale=ns;applyT(); },{passive:false});
+let panning=false, pSX, pSY, pOX, pOY;
+const board = document.getElementById('board');
 
-let td0=null,tpOn=false,tpSX,tpSY,tpOX,tpOY;
-board.addEventListener('touchstart',e=>{ if(isDrawMode)return; if(e.touches.length===1){tpOn=true;tpSX=e.touches[0].clientX;tpSY=e.touches[0].clientY;tpOX=viewX;tpOY=viewY;} if(e.touches.length===2)td0=tDst(e); },{passive:true});
-board.addEventListener('touchmove',e=>{ e.preventDefault(); if(isDrawMode)return; if(e.touches.length===1&&tpOn){viewX=tpOX+(e.touches[0].clientX-tpSX);viewY=tpOY+(e.touches[0].clientY-tpSY);applyT();} if(e.touches.length===2&&td0){const nd=tDst(e),ns=Math.max(.1,Math.min(4,viewScale*(nd/td0)));viewX=tMid(e).x-(tMid(e).x-viewX)*(ns/viewScale);viewY=tMid(e).y-(tMid(e).y-viewY)*(ns/viewScale);viewScale=ns;td0=nd;applyT();} },{passive:false});
-board.addEventListener('touchend',()=>{ tpOn=false;td0=null; },{passive:true});
+board.addEventListener('mousedown', e => {
+  if (isDrawMode) return;
+  if (e.target !== board && e.target !== world && !e.target.closest('#connections') && !e.target.closest('#draw-canvas')) return;
+  panning=true; pSX=e.clientX; pSY=e.clientY; pOX=viewX; pOY=viewY;
+  board.style.cursor='grabbing';
+});
+window.addEventListener('mousemove', e => { if (!panning) return; viewX=pOX+(e.clientX-pSX); viewY=pOY+(e.clientY-pSY); applyT(); });
+window.addEventListener('mouseup', () => { panning=false; board.style.cursor=''; });
+
+board.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (isDrawMode) return;
+  const d = e.deltaY>0 ? 0.88 : 1.14;
+  const ns = Math.max(.1, Math.min(4, viewScale*d));
+  viewX = e.clientX-(e.clientX-viewX)*(ns/viewScale);
+  viewY = e.clientY-(e.clientY-viewY)*(ns/viewScale);
+  viewScale = ns; applyT();
+},{passive:false});
+
+// Touch
+let td0=null, tpOn=false, tpSX, tpSY, tpOX, tpOY;
+board.addEventListener('touchstart', e => {
+  if (isDrawMode) return;
+  if (e.touches.length===1) { tpOn=true; tpSX=e.touches[0].clientX; tpSY=e.touches[0].clientY; tpOX=viewX; tpOY=viewY; }
+  if (e.touches.length===2) { td0=tDst(e); }
+},{passive:true});
+board.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (isDrawMode) return;
+  if (e.touches.length===1&&tpOn) { viewX=tpOX+(e.touches[0].clientX-tpSX); viewY=tpOY+(e.touches[0].clientY-tpSY); applyT(); }
+  if (e.touches.length===2&&td0) { const nd=tDst(e),ns=Math.max(.1,Math.min(4,viewScale*(nd/td0))); viewX=tMid(e).x-(tMid(e).x-viewX)*(ns/viewScale); viewY=tMid(e).y-(tMid(e).y-viewY)*(ns/viewScale); viewScale=ns; td0=nd; applyT(); }
+},{passive:false});
+board.addEventListener('touchend', () => { tpOn=false; td0=null; },{passive:true});
 function tDst(e){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function tMid(e){return{x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};}
 
-function applyT(){
-  world.style.transform=`translate(${viewX}px,${viewY}px) scale(${viewScale})`;
-  zoomHud.textContent=Math.round(viewScale*100)+'%';
-  board.style.backgroundPosition=`${viewX%40}px ${viewY%40}px`;
+function applyT() {
+  world.style.transform = `translate(${viewX}px,${viewY}px) scale(${viewScale})`;
+  zoomHud.textContent = Math.round(viewScale*100)+'%';
+  // Sync dot grid with world movement
+  board.style.backgroundPosition = `${viewX%40}px ${viewY%40}px`;
 }
 applyT();
 
 // ═══════════════════════════════════════════════
-// TOOLBAR / MODAL
+// TOOLBAR
 // ═══════════════════════════════════════════════
-document.getElementById('btn-add').addEventListener('click',()=>{ noteModal.classList.add('show'); setTimeout(()=>document.getElementById('nf-title').focus(),50); });
-document.getElementById('btn-reset').addEventListener('click',()=>{ viewX=120;viewY=80;viewScale=1;applyT(); });
-document.getElementById('btn-zoomin').addEventListener('click',()=>{ viewScale=Math.min(4,viewScale*1.25);applyT(); });
-document.getElementById('btn-zoomout').addEventListener('click',()=>{ viewScale=Math.max(.1,viewScale/1.25);applyT(); });
-document.getElementById('btn-shuffle').addEventListener('click',()=>{
-  NOTES.forEach(d=>{ const el=document.getElementById('n-'+d.id);if(!el)return; const r=(Math.random()-.5)*10;d.rot=r; el.style.transition='transform .5s cubic-bezier(.34,1.56,.64,1)'; el.style.transform=`rotate(${r}deg)`; setTimeout(()=>el.style.transition='',560); });
+document.getElementById('btn-add').addEventListener('click', () => { noteModal.classList.add('show'); setTimeout(()=>document.getElementById('nf-title').focus(),50); });
+document.getElementById('btn-reset').addEventListener('click', () => { viewX=120;viewY=80;viewScale=1;applyT(); });
+document.getElementById('btn-zoomin').addEventListener('click', () => { viewScale=Math.min(4,viewScale*1.25);applyT(); });
+document.getElementById('btn-zoomout').addEventListener('click', () => { viewScale=Math.max(.1,viewScale/1.25);applyT(); });
+document.getElementById('btn-shuffle').addEventListener('click', () => {
+  NOTES.forEach(d => {
+    const el=document.getElementById('n-'+d.id); if(!el)return;
+    const r=(Math.random()-.5)*10; d.rot=r;
+    el.style.transition='transform .5s cubic-bezier(.34,1.56,.64,1)';
+    el.style.transform=`rotate(${r}deg)`;
+    setTimeout(()=>el.style.transition='',560);
+  });
 });
 
-document.querySelectorAll('.nf-color').forEach(c=>{ c.addEventListener('click',()=>{ document.querySelectorAll('.nf-color').forEach(x=>x.classList.remove('selected')); c.classList.add('selected'); selColor=c.dataset.color; }); });
-document.getElementById('nf-cancel').addEventListener('click',()=>noteModal.classList.remove('show'));
-noteModal.addEventListener('click',e=>{ if(e.target===noteModal)noteModal.classList.remove('show'); });
-document.getElementById('nf-title').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();document.getElementById('nf-body').focus();} });
-document.getElementById('nf-body').addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter')document.getElementById('nf-create').click(); });
-document.getElementById('nf-create').addEventListener('click',()=>{
-  const title=document.getElementById('nf-title').value.trim()||'Note';
-  const body=document.getElementById('nf-body').value.trim()||'';
-  const id='u'+Date.now();
-  const cx=(window.innerWidth/2-viewX)/viewScale, cy=(window.innerHeight/2-viewY)/viewScale;
-  const d={ id,color:selColor,label:'Note',title,body,x:cx-115,y:cy-60,rot:(Math.random()-.5)*8,z:++topZ,conns:[] };
+// ═══════════════════════════════════════════════
+// NEW NOTE MODAL
+// ═══════════════════════════════════════════════
+document.querySelectorAll('.nf-color').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.nf-color').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected'); selColor=c.dataset.color;
+  });
+});
+document.getElementById('nf-cancel').addEventListener('click', ()=>noteModal.classList.remove('show'));
+noteModal.addEventListener('click', e => { if(e.target===noteModal) noteModal.classList.remove('show'); });
+document.getElementById('nf-title').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();document.getElementById('nf-body').focus();} });
+document.getElementById('nf-body').addEventListener('keydown', e => { if((e.metaKey||e.ctrlKey)&&e.key==='Enter') document.getElementById('nf-create').click(); });
+document.getElementById('nf-create').addEventListener('click', () => {
+  const title = document.getElementById('nf-title').value.trim()||'Note';
+  const body  = document.getElementById('nf-body').value.trim()||'';
+  const id    = 'u'+Date.now();
+  const cx = (window.innerWidth/2-viewX)/viewScale;
+  const cy = (window.innerHeight/2-viewY)/viewScale;
+  const decoTypes = [
+    {type:'tape',variant:'tape-h tape-pos-tc'},
+    {type:'tape',variant:'tape-h tape-kraft tape-pos-tl'},
+    {type:'pin',variant:'pin-red'},
+    {type:'pin',variant:'pin-silver'},
+    {type:'clip'},
+  ];
+  const d = {
+    id, color:selColor, label:'Note', title, body,
+    x:cx-115, y:cy-60, rot:(Math.random()-.5)*8, z:++topZ, conns:[],
+    deco: decoTypes[Math.floor(Math.random()*decoTypes.length)],
+  };
   NOTES.push(d); createNote(d);
   document.getElementById('nf-title').value='';
   document.getElementById('nf-body').value='';
@@ -703,136 +805,123 @@ document.getElementById('nf-create').addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════════
-// DRAW — canvas is fixed, covers full viewport
-// coords: simply clientX, clientY → canvas pixel
-// no transform needed since canvas is fixed at (0,0) same as viewport
+// DRAW  ── KEY FIX: use window coords directly
+// window is always (0,0) top-left, board is fixed at (0,0)
+// so: worldX = clientX / viewScale - viewX / viewScale
+//           = (clientX - viewX) / viewScale  ← this is wrong when viewX shifts origin
+// CORRECT: worldX = (clientX - viewX) / viewScale
+// But that still has the boundary issue if viewX > clientX
+// ACTUAL FIX: canvas is a child of world which is translated by viewX,viewY
+// So canvas top-left in screen = viewX, viewY
+// worldX = (clientX - viewX) / viewScale  ← correct when board.left=0
 // ═══════════════════════════════════════════════
 const drawCanvas = document.getElementById('draw-canvas');
 const dCtx = drawCanvas.getContext('2d');
-
-// Resize canvas to always match viewport
-function resizeDrawCanvas() {
-  // Save existing drawing
-  const tmp = document.createElement('canvas');
-  tmp.width=drawCanvas.width; tmp.height=drawCanvas.height;
-  tmp.getContext('2d').drawImage(drawCanvas,0,0);
-  drawCanvas.width  = window.innerWidth;
-  drawCanvas.height = window.innerHeight;
-  dCtx.drawImage(tmp,0,0);
-  redrawStrokes();
-}
-window.addEventListener('resize', resizeDrawCanvas);
-resizeDrawCanvas();
-
 let drawing=false, drawColor='#111', brushSz=3, isEraser=false;
 let strokes=[], curPts=[];
 
-// CANVAS IS FIXED AT (0,0) — clientX/Y IS DIRECTLY THE CANVAS COORD
-function toCanvas(clientX,clientY){ return {x:clientX, y:clientY}; }
+// THE FIX: canvas element is inside world which starts at (viewX, viewY) in screen space
+// So to get canvas coords from screen coords:
+// canvasX = (screenX - viewX) / viewScale
+function toCanvas(clientX, clientY) {
+  return {
+    x: (clientX - viewX) / viewScale,
+    y: (clientY - viewY) / viewScale,
+  };
+}
 
-function startD(x,y){ drawing=true; curPts=[{x,y}]; }
-function moveD(x,y){
-  if(!drawing)return;
+function startD(x,y) { drawing=true; curPts=[{x,y}]; }
+function moveD(x,y) {
+  if(!drawing) return;
   curPts.push({x,y});
   redrawStrokes();
-  renderS({points:curPts,color:isEraser?null:drawColor,size:isEraser?brushSz*6:brushSz,eraser:isEraser});
+  renderS({points:curPts, color:isEraser?'#cdd2dc':drawColor, size:isEraser?brushSz*6:brushSz});
 }
-function endD(){
-  if(!drawing)return; drawing=false;
-  if(curPts.length>1) strokes.push({points:[...curPts],color:drawColor,size:isEraser?brushSz*6:brushSz,eraser:isEraser});
+function endD() {
+  if(!drawing) return; drawing=false;
+  if(curPts.length>1) strokes.push({points:[...curPts], color:isEraser?'#cdd2dc':drawColor, size:isEraser?brushSz*6:brushSz});
   curPts=[]; redrawStrokes();
 }
-function renderS(s){
-  if(s.points.length<2)return;
+function renderS(s) {
+  if(s.points.length<2) return;
   dCtx.save();
-  if(s.eraser){
-    dCtx.globalCompositeOperation='destination-out';
-    dCtx.strokeStyle='rgba(0,0,0,1)';
-  } else {
-    dCtx.globalCompositeOperation='source-over';
-    dCtx.strokeStyle=s.color;
-  }
-  dCtx.lineWidth=s.size; dCtx.lineCap='round'; dCtx.lineJoin='round';
-  dCtx.beginPath(); dCtx.moveTo(s.points[0].x,s.points[0].y);
-  for(let i=1;i<s.points.length-1;i++){
+  dCtx.strokeStyle=s.color; dCtx.lineWidth=s.size;
+  dCtx.lineCap='round'; dCtx.lineJoin='round';
+  dCtx.beginPath(); dCtx.moveTo(s.points[0].x, s.points[0].y);
+  for(let i=1;i<s.points.length-1;i++) {
     dCtx.quadraticCurveTo(s.points[i].x,s.points[i].y,(s.points[i].x+s.points[i+1].x)/2,(s.points[i].y+s.points[i+1].y)/2);
   }
-  dCtx.lineTo(s.points[s.points.length-1].x,s.points[s.points.length-1].y);
+  dCtx.lineTo(s.points[s.points.length-1].x, s.points[s.points.length-1].y);
   dCtx.stroke(); dCtx.restore();
 }
-function redrawStrokes(){ dCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.forEach(s=>renderS(s)); }
+function redrawStrokes() { dCtx.clearRect(0,0,8000,8000); strokes.forEach(s=>renderS(s)); }
 
-// All draw events on window so full viewport works
-window.addEventListener('mousedown',e=>{
-  if(!isDrawMode)return;
-  if(e.target.closest('#toolbar,#draw-toolbar,#note-modal,#logo,#zoom-hud'))return;
-  e.preventDefault();
+drawCanvas.addEventListener('mousedown', e => {
+  if(!isDrawMode) return;
+  e.preventDefault(); e.stopPropagation();
   const p=toCanvas(e.clientX,e.clientY); startD(p.x,p.y);
 });
-window.addEventListener('mousemove',e=>{
-  if(!isDrawMode||!drawing)return;
+window.addEventListener('mousemove', e => {
+  if(!isDrawMode||!drawing) return;
   const p=toCanvas(e.clientX,e.clientY); moveD(p.x,p.y);
 });
-window.addEventListener('mouseup',()=>{ if(isDrawMode&&drawing)endD(); });
+window.addEventListener('mouseup', () => { if(isDrawMode&&drawing) endD(); });
 
-window.addEventListener('touchstart',e=>{
-  if(!isDrawMode||e.touches.length!==1)return;
-  if(e.target.closest('#toolbar,#draw-toolbar,#note-modal'))return;
+drawCanvas.addEventListener('touchstart', e => {
+  if(!isDrawMode||e.touches.length!==1) return;
   e.preventDefault();
   const p=toCanvas(e.touches[0].clientX,e.touches[0].clientY); startD(p.x,p.y);
 },{passive:false});
-window.addEventListener('touchmove',e=>{
-  if(!isDrawMode||e.touches.length!==1)return;
+drawCanvas.addEventListener('touchmove', e => {
+  if(!isDrawMode||e.touches.length!==1) return;
   e.preventDefault();
   const p=toCanvas(e.touches[0].clientX,e.touches[0].clientY); moveD(p.x,p.y);
 },{passive:false});
-window.addEventListener('touchend',()=>{ if(isDrawMode&&drawing)endD(); },{passive:false});
+drawCanvas.addEventListener('touchend', () => { if(isDrawMode&&drawing) endD(); },{passive:false});
 
-// Draw toolbar controls
-const drawToolbar=document.getElementById('draw-toolbar');
-document.getElementById('btn-draw').addEventListener('click',()=>{
+// Draw toolbar
+const drawToolbar = document.getElementById('draw-toolbar');
+document.getElementById('btn-draw').addEventListener('click', () => {
   isDrawMode=!isDrawMode;
+  drawCanvas.classList.toggle('active',isDrawMode);
   drawToolbar.classList.toggle('show',isDrawMode);
   document.body.classList.toggle('draw-mode',isDrawMode);
   document.getElementById('btn-draw').classList.toggle('on',isDrawMode);
-  document.getElementById('cur').className = isDrawMode ? 'draw' : '';
 });
-document.querySelectorAll('.dt-color').forEach(c=>{
-  c.addEventListener('click',()=>{
+document.querySelectorAll('.dt-color').forEach(c => {
+  c.addEventListener('click', () => {
     document.querySelectorAll('.dt-color').forEach(x=>x.classList.remove('active'));
     c.classList.add('active'); drawColor=c.dataset.color; isEraser=false;
     document.getElementById('btn-eraser').classList.remove('active');
   });
 });
-document.getElementById('brush-size').addEventListener('input',e=>brushSz=+e.target.value);
-document.getElementById('btn-eraser').addEventListener('click',()=>{ isEraser=!isEraser; document.getElementById('btn-eraser').classList.toggle('active',isEraser); });
-document.getElementById('btn-undo').addEventListener('click',()=>{ strokes.pop(); redrawStrokes(); });
-document.getElementById('btn-clear-draw').addEventListener('click',()=>{ if(confirm('全て消しますか？')){strokes=[];dCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);} });
-document.getElementById('btn-draw-done').addEventListener('click',()=>{
-  isDrawMode=false; drawToolbar.classList.remove('show');
-  document.body.classList.remove('draw-mode'); document.getElementById('btn-draw').classList.remove('on');
-  document.getElementById('cur').className=''; endD();
+document.getElementById('brush-size').addEventListener('input', e => brushSz=+e.target.value);
+document.getElementById('btn-eraser').addEventListener('click', () => { isEraser=!isEraser; document.getElementById('btn-eraser').classList.toggle('active',isEraser); });
+document.getElementById('btn-undo').addEventListener('click', () => { strokes.pop(); redrawStrokes(); });
+document.getElementById('btn-clear-draw').addEventListener('click', () => { if(confirm('全て消しますか？')){strokes=[];dCtx.clearRect(0,0,8000,8000);} });
+document.getElementById('btn-draw-done').addEventListener('click', () => {
+  isDrawMode=false; drawCanvas.classList.remove('active'); drawToolbar.classList.remove('show');
+  document.body.classList.remove('draw-mode'); document.getElementById('btn-draw').classList.remove('on'); endD();
 });
 
 // ═══════════════════════════════════════════════
 // CURSOR
 // ═══════════════════════════════════════════════
-const curEl=document.getElementById('cur');
-let cX=0,cY=0,mX=innerWidth/2,mY=innerHeight/2;
-window.addEventListener('mousemove',e=>{ mX=e.clientX;mY=e.clientY; });
-board.addEventListener('mouseover',e=>{
-  if(isDrawMode){curEl.className='draw';return;}
-  curEl.className=e.target.closest('.note')?'grab':'';
+const curEl = document.getElementById('cur');
+let cX=0, cY=0, mX=innerWidth/2, mY=innerHeight/2;
+window.addEventListener('mousemove', e => { mX=e.clientX; mY=e.clientY; });
+board.addEventListener('mouseover', e => {
+  if (isDrawMode) { curEl.className='draw'; return; }
+  curEl.className = e.target.closest('.note') ? 'grab' : '';
 });
-(function cl(){requestAnimationFrame(cl); cX+=(mX-cX)*.16;cY+=(mY-cY)*.16; curEl.style.left=cX+'px';curEl.style.top=cY+'px';})();
+(function cl(){requestAnimationFrame(cl); cX+=(mX-cX)*.16; cY+=(mY-cY)*.16; curEl.style.left=cX+'px'; curEl.style.top=cY+'px';})();
 
 // ═══════════════════════════════════════════════
 // IDLE CLOCK
 // ═══════════════════════════════════════════════
-const idleClk=document.getElementById('idle-clk');
-const clkT=document.getElementById('clk-t'),clkD=document.getElementById('clk-d');
+const idleClk=document.getElementById('idle-clk'), clkT=document.getElementById('clk-t'), clkD=document.getElementById('clk-d');
 const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-let idleTimer,isIdle=false;
+let idleTimer, isIdle=false;
 function tick(){
   const n=new Date();
   clkT.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
@@ -846,6 +935,7 @@ function resetIdle(){
 }
 ['mousemove','keydown','touchstart','wheel'].forEach(ev=>window.addEventListener(ev,resetIdle,{passive:true}));
 resetIdle();
+window.addEventListener('resize',applyT);
 </script>
 </body>
 </html>
