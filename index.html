@@ -192,10 +192,9 @@ body.draw-mode .note { pointer-events:none!important; }
 }
 #tt-arm.on { transform: rotate(26deg); }
 
-/* spinning disc layer — transform-box:fill-box ensures rotation around element's own centre */
+/* spinning disc layer */
 #tt-disc-spin {
-  transform-box: fill-box;
-  transform-origin: center;
+  transform-origin: 68px 72px;   /* exact platter centre in SVG user units */
 }
 #tt-disc-spin.spinning { animation: tt-spin 1.8s linear infinite; }
 @keyframes tt-spin { to { transform: rotate(360deg); } }
@@ -250,165 +249,6 @@ body.draw-mode .note { pointer-events:none!important; }
   background:#ff2020;
   box-shadow: 0 0 6px rgba(255,30,30,.9), 0 0 14px rgba(255,30,30,.4), inset 0 1px 0 rgba(255,100,100,.3);
 }
-/* ── IDLE ALARM — Windows XP style ── */
-#xp-bar {
-  position: fixed;
-  /* Use translate Y trick — more reliable than negative top with transition */
-  top: 10px;
-  left: 50%;
-  /* Start offscreen via translateX + translateY combo */
-  transform: translateX(-50%) translateY(calc(-100% - 30px));
-  width: 360px;
-  z-index: 9000; /* below turntable (no stacking context issue) */
-  transition: transform .4s cubic-bezier(.22,1,.36,1);
-  box-shadow: 3px 6px 24px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.08);
-  border-radius: 8px 8px 4px 4px;
-  font-family: 'Tahoma', 'MS Sans Serif', Arial, sans-serif;
-  user-select: none;
-  /* no filter — would create stacking context and eat other fixed elements */
-}
-#xp-bar.show {
-  transform: translateX(-50%) translateY(0);
-}
-
-/* XP title bar */
-#xp-titlebar {
-  background: linear-gradient(180deg,
-    #0058d0 0%, #3090f8 8%, #1a70e0 50%, #1860c8 92%, #003b9c 100%);
-  border-radius: 8px 8px 0 0;
-  padding: 5px 6px 5px 8px;
-  display: flex; align-items: center; gap: 6px;
-  border-bottom: 1px solid #002a80;
-}
-#xp-titlebar-icon {
-  width: 16px; height: 16px; flex-shrink: 0;
-  background: radial-gradient(circle at 40% 35%, #ffe866, #ff9900 55%, #c86000 100%);
-  border-radius: 50%;
-  border: 1px solid rgba(0,0,0,.45);
-  box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.45);
-  position: relative;
-}
-#xp-titlebar-icon::after {
-  content: '!';
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 900; color: #5a2800;
-  padding-bottom: 1px;
-}
-#xp-titlebar-text {
-  flex: 1;
-  font-size: 12px; font-weight: 700;
-  color: #fff;
-  text-shadow: 1px 1px 2px rgba(0,0,0,.55);
-  letter-spacing: .01em;
-}
-/* XP close button */
-#xp-close {
-  width: 21px; height: 21px;
-  background: linear-gradient(180deg, #e86060 0%, #cc2020 45%, #aa0000 100%);
-  border: 1px solid #770000;
-  border-top-color: #ff8080;
-  border-left-color: #dd4444;
-  border-radius: 3px;
-  color: #fff; font-size: 12px; font-weight: 900; line-height: 1;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 1px 1px 2px rgba(0,0,0,.4);
-  transition: background .07s;
-  flex-shrink: 0;
-  text-shadow: 0 1px 1px rgba(0,0,0,.6);
-  padding-bottom: 1px;
-}
-#xp-close:hover  { background: linear-gradient(180deg, #ff9090 0%, #ee3333 45%, #cc1111 100%); }
-#xp-close:active { background: linear-gradient(180deg, #aa2020 0%, #cc3030 100%); }
-
-/* XP window body */
-#xp-body {
-  background: linear-gradient(180deg, #ece9d8 0%, #d4d0c8 100%);
-  border: 2px solid #0058d0;
-  border-top: none;
-  border-radius: 0 0 5px 5px;
-  padding: 14px 16px 14px;
-  display: flex; align-items: flex-start; gap: 14px;
-}
-
-/* big XP warning icon */
-#xp-icon { width: 48px; height: 48px; flex-shrink: 0; margin-top: 2px; }
-#xp-icon svg { width: 48px; height: 48px; }
-
-#xp-text-area { flex: 1; min-width: 0; }
-#xp-title {
-  font-size: 13px; font-weight: 700; color: #000080;
-  margin-bottom: 6px;
-}
-#xp-msg {
-  font-size: 11px; color: #222; line-height: 1.55;
-  margin-bottom: 10px;
-}
-
-/* progress bar */
-#xp-progress {
-  height: 14px;
-  background: #c8c4b8;
-  border: 1px solid #888;
-  border-right-color: #ddd;
-  border-bottom-color: #ddd;
-  border-radius: 2px;
-  margin-bottom: 5px;
-  overflow: hidden;
-  position: relative;
-}
-#xp-progress-fill {
-  height: 100%;
-  background: linear-gradient(180deg, #60a8f8 0%, #1868e0 45%, #0848b8 100%);
-  border-radius: 1px;
-  transition: width .95s linear;
-  width: 100%;
-  position: relative;
-}
-/* XP progress bar shine */
-#xp-progress-fill::after {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 50%;
-  background: rgba(255,255,255,.3);
-  border-radius: 1px 1px 0 0;
-}
-#xp-timer-text {
-  font-size: 10px; color: #555;
-  font-family: 'Tahoma', sans-serif;
-  margin-bottom: 12px;
-}
-
-/* XP action buttons */
-#xp-buttons {
-  display: flex; gap: 8px; justify-content: flex-end;
-}
-.xp-btn {
-  min-width: 82px; height: 23px;
-  background: linear-gradient(180deg, #f5f4ea 0%, #e0ddd0 45%, #d0cdc0 100%);
-  border: 1px solid #707070;
-  border-bottom-color: #444;
-  border-right-color: #555;
-  border-radius: 3px;
-  font-family: 'Tahoma', Arial, sans-serif;
-  font-size: 11px; color: #000;
-  cursor: pointer; padding: 0 10px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 1px 1px 0 rgba(0,0,0,.1);
-  transition: all .06s;
-  white-space: nowrap;
-}
-.xp-btn:hover {
-  background: linear-gradient(180deg, #dbeeff 0%, #c4d8f8 45%, #b0c8f0 100%);
-  border-color: #2060c0;
-}
-.xp-btn:active {
-  background: linear-gradient(180deg, #b0c8f0 0%, #c4d8f8 100%);
-  box-shadow: inset 1px 1px 2px rgba(0,0,0,.18);
-}
-.xp-btn-default {
-  border: 2px solid #2060d0;
-  background: linear-gradient(180deg, #dbeeff 0%, #c4d8f8 45%, #aaccee 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 1px 1px 0 rgba(0,0,0,.1);
-}
 </style>
 <body>
 
@@ -426,42 +266,6 @@ body.draw-mode .note { pointer-events:none!important; }
 <div id="logo">∅ Board</div>
 
 <!-- ── Windows XP Idle Alarm ── -->
-<div id="xp-bar">
-  <div id="xp-titlebar">
-    <div id="xp-titlebar-icon"></div>
-    <span id="xp-titlebar-text">∅ Board — System Alert</span>
-    <button id="xp-close">✕</button>
-  </div>
-  <div id="xp-body">
-    <div id="xp-icon">
-      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="warnFill" cx="50%" cy="38%" r="60%">
-            <stop offset="0%"   stop-color="#fff066"/>
-            <stop offset="55%"  stop-color="#ffcc00"/>
-            <stop offset="100%" stop-color="#cc8800"/>
-          </radialGradient>
-        </defs>
-        <polygon points="24,3 46,44 2,44" fill="url(#warnFill)"
-                 stroke="#886600" stroke-width="1.5" stroke-linejoin="round"/>
-        <polygon points="24,6 43.5,43 4.5,43" fill="none"
-                 stroke="rgba(255,255,255,.4)" stroke-width=".8"/>
-        <rect x="21.5" y="16" width="5" height="14" rx="2.5" fill="#5a3800"/>
-        <rect x="21.5" y="33" width="5" height="5"  rx="2.5" fill="#5a3800"/>
-      </svg>
-    </div>
-    <div id="xp-text-area">
-      <div id="xp-title">アイドル状態が検出されました</div>
-      <div id="xp-msg">マウスの動きがしばらく検出されていません。<br>まだ作業中ですか？</div>
-      <div id="xp-progress"><div id="xp-progress-fill"></div></div>
-      <div id="xp-timer-text"><span id="xp-countdown">10</span>秒後に自動で閉じます</div>
-      <div id="xp-buttons">
-        <button class="xp-btn xp-btn-default" id="xp-dismiss">作業中です</button>
-        <button class="xp-btn" id="xp-snooze">5分スヌーズ</button>
-      </div>
-    </div>
-  </div>
-</div>
 <!-- turntable widget -->
 <div id="turntable">
 
@@ -605,7 +409,7 @@ body.draw-mode .note { pointer-events:none!important; }
     <circle cx="68" cy="72" r="56.0" fill="none" stroke="rgba(0,0,0,.10)"       stroke-width=".3"/>
 
     <!-- ── SPINNING GROUP (disc + label) ── -->
-    <g id="tt-disc-spin" transform-origin="68 72" style="transform-box:fill-box; transform-origin:center;">
+    <g id="tt-disc-spin">
       <!-- vinyl base -->
       <circle cx="68" cy="72" r="53" fill="url(#vinylGrad)"/>
 
@@ -1703,111 +1507,10 @@ drawConnsInteractive();
   updateInfo();
 })();
 
-// ── IDLE ALARM ───────────────────────────────────────────────────────────
-(function(){
-  const IDLE_MS   = 3 * 60 * 1000; // 3 minutes idle → alarm
-  const DISMISS_S = 10;            // auto-dismiss countdown
-
-  const bar       = document.getElementById('xp-bar');
-  const fill      = document.getElementById('xp-progress-fill');
-  const countdown = document.getElementById('xp-countdown');
-  const btnDismiss= document.getElementById('xp-dismiss');
-  const btnSnooze = document.getElementById('xp-snooze');
-  const btnClose  = document.getElementById('xp-close');
-
-  let idleTimer    = null;
-  let dismissTimer = null;
-  let countdownInt = null;
-  let snoozed      = false;
-  let snoozeTimer  = null;
-  let alarmAc      = null;
-  let alarmNodes   = [];
-
-  // ── Alarm sound (Windows XP "Exclamation" style beep) ──────────────────
-  function playAlarm(){
-    try {
-      alarmAc = new(window.AudioContext||window.webkitAudioContext)();
-      // XP uses a short 3-tone ding: 880Hz → 660Hz → 880Hz
-      const tones = [
-        {f:880, t:0,    dur:.12},
-        {f:660, t:.14,  dur:.10},
-        {f:880, t:.26,  dur:.18},
-      ];
-      tones.forEach(({f,t,dur})=>{
-        const o=alarmAc.createOscillator(); const g=alarmAc.createGain();
-        o.type='sine'; o.frequency.value=f;
-        g.gain.setValueAtTime(0,alarmAc.currentTime+t);
-        g.gain.linearRampToValueAtTime(0.22, alarmAc.currentTime+t+0.01);
-        g.gain.exponentialRampToValueAtTime(0.001, alarmAc.currentTime+t+dur);
-        o.connect(g); g.connect(alarmAc.destination);
-        o.start(alarmAc.currentTime+t); o.stop(alarmAc.currentTime+t+dur+0.05);
-        alarmNodes.push(o,g);
-      });
-    } catch(e){}
-  }
-  function stopAlarm(){
-    alarmNodes.forEach(n=>{try{n.stop&&n.stop();n.disconnect&&n.disconnect();}catch(e){}});
-    alarmNodes=[];
-    if(alarmAc){try{alarmAc.close();}catch(e){} alarmAc=null;}
-  }
-
-  // ── Show / hide bar ─────────────────────────────────────────────────────
-  function showBar(){
-    bar.classList.add('show');
-    playAlarm();
-    // start countdown
-    let secs = DISMISS_S;
-    fill.style.width = '100%';
-    countdown.textContent = secs;
-    countdownInt = setInterval(()=>{
-      secs--;
-      countdown.textContent = secs;
-      fill.style.width = (secs/DISMISS_S*100)+'%';
-      if(secs<=0){ clearInterval(countdownInt); hideBar(); }
-    }, 1000);
-    // also auto-dismiss after DISMISS_S
-    dismissTimer = setTimeout(hideBar, DISMISS_S*1000+200);
-  }
-
-  function hideBar(){
-    bar.classList.remove('show');
-    stopAlarm();
-    clearInterval(countdownInt);
-    clearTimeout(dismissTimer);
-    // reset progress
-    fill.style.width = '100%';
-    countdown.textContent = DISMISS_S;
-    // restart idle watch
-    scheduleIdle();
-  }
-
-  // ── Idle scheduling ─────────────────────────────────────────────────────
-  function scheduleIdle(delay=IDLE_MS){
-    clearTimeout(idleTimer);
-    if(!snoozed) idleTimer = setTimeout(showBar, delay);
-  }
-
-  function onActivity(){
-    if(bar.classList.contains('show')) return; // don't reset while bar is visible
-    scheduleIdle();
-  }
-
-  // ── Button handlers ──────────────────────────────────────────────────────
-  btnDismiss.addEventListener('click', ()=>{ snoozed=false; hideBar(); });
-  btnClose  .addEventListener('click', ()=>{ snoozed=false; hideBar(); });
-  btnSnooze .addEventListener('click', ()=>{
-    hideBar();
-    snoozed=true;
-    clearTimeout(snoozeTimer);
-    snoozeTimer=setTimeout(()=>{ snoozed=false; scheduleIdle(); }, 5*60*1000);
-  });
-
-  // ── Track mouse movement ─────────────────────────────────────────────────
-  document.addEventListener('mousemove', onActivity, {passive:true});
-  document.addEventListener('keydown',   onActivity, {passive:true});
-
-  // kick off
-  scheduleIdle();
-})();
 
 
+
+
+</script>
+</body>
+</html>
